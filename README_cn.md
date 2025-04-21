@@ -68,14 +68,17 @@
 
 RDK S100: Run on CPU
 
-![](https://github.com/D-Robotics/rdk_LeRobot_tools/blob/main/imgs/so100_1arm_RunOnCPU.gif)
+<img src="imgs/so100_1arm_RunOnCPU.gif" width="100%" alt="/>
+
+
+Video: [https://github.com/D-Robotics/rdk_LeRobot_tools/blob/main/imgs/so100_1arm_RunOnCPU.mp4]
 
 
 RDK S100: Run on BPU
 
-![](https://github.com/D-Robotics/rdk_LeRobot_tools/blob/main/imgs/so100_1arm_RunOnBPU.gif)
+<img src="imgs/so100_1arm_RunOnBPU.gif" width="100%" alt=""/>
 
-
+Video: [https://github.com/D-Robotics/rdk_LeRobot_tools/blob/main/imgs/so100_1arm_RunOnBPU.mp4]
 
 ### 双臂SO100的效果对比
 
@@ -85,13 +88,22 @@ RDK S100: Run on CPU
 
 ![](https://github.com/D-Robotics/rdk_LeRobot_tools/blob/main/imgs/so100_2arm_RunOnCPU.gif)
 
+<img src="imgs/so100_2arm_RunOnCPU.gif" width="100%" alt=""/>
+
+Video: [https://github.com/D-Robotics/rdk_LeRobot_tools/blob/main/imgs/so100_2arm_RunOnCPU.mp4]
+
 RDK S100: Run on BPU: 
 
-![](https://github.com/D-Robotics/rdk_LeRobot_tools/blob/main/imgs/so100_2arm_RunOnBPU.gif)
+<img src="imgs/so100_2arm_RunOnBPU.gif" width="100%" alt=""/>
+
+Video: [https://github.com/D-Robotics/rdk_LeRobot_tools/blob/main/imgs/so100_2arm_RunOnBPU.mp4]
 
 我们采集了50组双臂叠衣服的数据集，您可以参考我们的HuggingFace仓库的数据集来决定您的双臂工装
 
-![](https://github.com/D-Robotics/rdk_LeRobot_tools/blob/main/imgs/dataset_5X6.gif)
+<img src="imgs/dataset_5X6.gif" width="100%" alt=""/>
+
+
+Video: [https://github.com/D-Robotics/rdk_LeRobot_tools/blob/main/imgs/dataset_5X6.mp4]
 
 参考数据集仓库ID：https://huggingface.co/datasets/MaCCChhh/rdk_so100_test/tree/main
 
