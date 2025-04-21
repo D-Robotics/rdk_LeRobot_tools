@@ -8,9 +8,9 @@
 
 - Github README & README_cn: https://github.com/D-Robotics/rdk_LeRobot_tools
 
-- 地瓜开发者社区中文博客: 
+- 地瓜开发者社区中文博客: https://developer.d-robotics.cc/forumDetail/289424806557116771
 
-- D-Robotics Developer Community English Blog: 
+- D-Robotics Developer Community English Blog: developer.d-robotics.cc/en/forumDetail/287581909104596495
 
 ## 目录
 
