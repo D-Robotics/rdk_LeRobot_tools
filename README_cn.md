@@ -68,12 +68,12 @@
 
 RDK S100: Run on CPU
 
-Video: [https://github.com/D-Robotics/rdk_LeRobot_tools/blob/main/imgs/so100_1arm_RunOnCPU.mp4]
+![](https://github.com/D-Robotics/rdk_LeRobot_tools/blob/main/imgs/so100_1arm_RunOnCPU.gif)
 
 
 RDK S100: Run on BPU
 
-Video: [https://github.com/D-Robotics/rdk_LeRobot_tools/blob/main/imgs/so100_1arm_RunOnBPU.mp4]
+![](https://github.com/D-Robotics/rdk_LeRobot_tools/blob/main/imgs/so100_1arm_RunOnBPU.gif)
 
 
 
@@ -83,17 +83,19 @@ Video: [https://github.com/D-Robotics/rdk_LeRobot_tools/blob/main/imgs/so100_1ar
 
 RDK S100: Run on CPU
 
-Video: [https://github.com/D-Robotics/rdk_LeRobot_tools/blob/main/imgs/so100_2arm_RunOnCPU.mp4]
+![](https://github.com/D-Robotics/rdk_LeRobot_tools/blob/main/imgs/so100_2arm_RunOnCPU.gif)
 
 RDK S100: Run on BPU: 
 
-Video: [https://github.com/D-Robotics/rdk_LeRobot_tools/blob/main/imgs/so100_2arm_RunOnBPU.mp4]
+![](https://github.com/D-Robotics/rdk_LeRobot_tools/blob/main/imgs/so100_2arm_RunOnBPU.gif)
 
 我们采集了50组双臂叠衣服的数据集，您可以参考我们的HuggingFace仓库的数据集来决定您的双臂工装
 
-Video: [https://github.com/D-Robotics/rdk_LeRobot_tools/blob/main/imgs/dataset_5X6.mp4]
+![](https://github.com/D-Robotics/rdk_LeRobot_tools/blob/main/imgs/dataset_5X6.gif)
 
+参考数据集仓库ID：https://huggingface.co/datasets/MaCCChhh/rdk_so100_test/tree/main
 
+在线可视化参考数据集：https://huggingface.co/spaces/lerobot/visualize_dataset?dataset=MaCCChhh%2Frdk_so100_test
 
 ## 全流程概览
 ![](imgs/Overview_of_the_whole_process.png)
