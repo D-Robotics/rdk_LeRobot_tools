@@ -359,7 +359,7 @@ set -e -v
 cd $(dirname $0) || exit
 hb_compile --config {config_yaml_name_BPU_ACTPolicy_VisionEncoder}
 chmod 777 ./*
-cp bpu_model_output/{BPU_VisionEncoder}.hbm ../bpu_output_name
+cp bpu_model_output/{BPU_VisionEncoder}.hbm ../{bpu_output_name}
 '''
         with open(bash_path_BPU_ACTPolicy_VisionEncoder, "w", encoding="utf-8") as file:
             file.write(bash)
@@ -372,7 +372,7 @@ set -e -v
 cd $(dirname $0) || exit
 hb_compile --config {config_yaml_name_BPU_ACTPolicy_TransformerLayers}
 chmod 777 ./*
-cp bpu_model_output/{BPU_TransformerLayers}.hbm ../bpu_output_name
+cp bpu_model_output/{BPU_TransformerLayers}.hbm ../{bpu_output_name}
 '''
         with open(bash_path_BPU_ACTPolicy_TransformerLayers, "w", encoding="utf-8") as file:
             file.write(bash)
