@@ -7,9 +7,9 @@ Feishu Document: https://horizonrobotics.feishu.cn/docx/HSr8dBdZ0oQ5OwxPQvBcsuyZ
 
 Github README & README_cn: https://github.com/D-Robotics/rdk_LeRobot_tools
 
-D-Robotics Developer Community Chinese Blog: 
+D-Robotics Developer Community Chinese Blog: https://developer.d-robotics.cc/forumDetail/289424806557116771
 
-D-Robotics Developer Community English Blog: 
+D-Robotics Developer Community English Blog: developer.d-robotics.cc/en/forumDetail/287581909104596495
 
 
 - [RDK LeRobot Tools](#rdk-lerobot-tools)
