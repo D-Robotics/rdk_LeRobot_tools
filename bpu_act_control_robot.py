@@ -42,7 +42,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--bpu-act-path', type=str, default='/root/lerobot_b/bpu_output_act_0417_2arms', help='Path to LeRobot ACT Policy model.')
     """ 
-    # example: --bpy-act-path pretrained_model
+    # example: --bpu-act-path pretrained_model
     .
     |-- BPU_ACTPolicy_TransformerLayers.hbm
     |-- BPU_ACTPolicy_VisionEncoder.hbm
@@ -58,7 +58,7 @@ def main():
     parser.add_argument('--fps', type=int, default=30, help='') 
     parser.add_argument('--inference-time', type=int, default=1000, help='seconds') 
     parser.add_argument('--n-action-steps', type=int, default=50, help='')
-    opt = parser.parse_args([])
+    opt = parser.parse_args()
     
     robot = make_robot("so100")
     robot.connect()
@@ -167,6 +167,8 @@ class RDK_ACTPolicy():
     def unnormalize_outputs(self, batch):
         batch["action"] = batch["action"] * self.action_std_unnormalize + self.action_mean_unnormalize
         return batch
+    
+import cv2
 # Copyright 2024 The HuggingFace Inc. team. All rights reserved.
 def predict_action(observation, policy):
     observation = copy(observation)
