@@ -1,15 +1,21 @@
+
+[English](./README.md) | 简体中文
+
 # RDK LeRobot Tools
 
-飞书文档 Feishu Document: https://horizonrobotics.feishu.cn/docx/HSr8dBdZ0oQ5OwxPQvBcsuyZnWe
 
-Github README & README_cn: https://github.com/D-Robotics/rdk_LeRobot_tools
+- 飞书文档 Feishu Document: https://horizonrobotics.feishu.cn/docx/HSr8dBdZ0oQ5OwxPQvBcsuyZnWe
 
-地瓜开发者社区中文博客: 
+- Github README & README_cn: https://github.com/D-Robotics/rdk_LeRobot_tools
 
-D-Robotics Developer Community English Blog: 
+- 地瓜开发者社区中文博客: 
 
+- D-Robotics Developer Community English Blog: 
+
+## 目录
 
 - [RDK LeRobot Tools](#rdk-lerobot-tools)
+  - [目录](#目录)
   - [摘要](#摘要)
     - [亮点](#亮点)
     - [单臂SO100的效果对比](#单臂so100的效果对比)
