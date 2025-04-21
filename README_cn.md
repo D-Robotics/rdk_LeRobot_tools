@@ -68,7 +68,7 @@
 
 RDK S100: Run on CPU
 
-<img src="imgs/so100_1arm_RunOnCPU.gif" width="100%" alt="/>
+<img src="imgs/so100_1arm_RunOnCPU.gif" width="100%" alt=""/>
 
 
 Video: [https://github.com/D-Robotics/rdk_LeRobot_tools/blob/main/imgs/so100_1arm_RunOnCPU.mp4]
