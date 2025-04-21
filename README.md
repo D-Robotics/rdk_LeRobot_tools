@@ -65,10 +65,14 @@ This guide enables you to implement LeRobot's ACT Policy algorithm on RDK device
 
 RDK S100: Run on CPU
 
+<img src="imgs/so100_1arm_RunOnCPU.gif" width="100%" alt=""/>
+
 Video: [https://github.com/D-Robotics/rdk_LeRobot_tools/blob/main/imgs/so100_1arm_RunOnCPU.mp4]
 
 
 RDK S100: Run on BPU
+
+<img src="imgs/so100_1arm_RunOnBPU.gif" width="100%" alt=""/>
 
 Video: [https://github.com/D-Robotics/rdk_LeRobot_tools/blob/main/imgs/so100_1arm_RunOnBPU.mp4]
 
@@ -80,16 +84,25 @@ You can even assemble a dual-arm SO100 setup and use LeRobot on RDK to tackle ta
 
 RDK S100: Run on CPU
 
+<img src="imgs/so100_2arm_RunOnCPU.gif" width="100%" alt=""/>
+
 Video: [https://github.com/D-Robotics/rdk_LeRobot_tools/blob/main/imgs/so100_2arm_RunOnCPU.mp4]
 
 RDK S100: Run on BPU: 
+
+<img src="imgs/so100_2arm_RunOnBPU.gif" width="100%" alt=""/>
 
 Video: [https://github.com/D-Robotics/rdk_LeRobot_tools/blob/main/imgs/so100_2arm_RunOnBPU.mp4]
 
 We collected 50 sets of dual-arm cloth folding datasets. You can refer to our HuggingFace repository to decide on your dual-arm setup.
 
+<img src="imgs/dataset_5X6.gif" width="100%" alt=""/>
+
 Video: [https://github.com/D-Robotics/rdk_LeRobot_tools/blob/main/imgs/dataset_5X6.mp4]
 
+https://huggingface.co/datasets/MaCCChhh/rdk_so100_test/tree/main
+
+https://huggingface.co/spaces/lerobot/visualize_dataset?dataset=MaCCChhh%2Frdk_so100_test
 
 
 ## Overview of the Entire Process
