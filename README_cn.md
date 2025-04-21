@@ -15,7 +15,11 @@ D-Robotics Developer English Blog:
 
 - RDK S100: Run on CPU
 
-[imgs/so100_1arm_RunOnCPU.mp4]
+<video controls>
+  <source src="https://github.com/D-Robotics/rdk_LeRobot_tools/blob/main/imgs/so100_1arm_RunOnCPU.mp4" type="video/mp4">
+</video>
+
+
 
 - RDK S100: Run on BPU
 
@@ -28,14 +32,14 @@ D-Robotics Developer English Blog:
 RDK S100: Run on CPU
 RDK S100: Run on BPU
 
-我们采集了50组双臂叠衣服的数据集，您可以参考我们的HuggingFace仓库的数据集来决定您的双臂工装：@马超 
+我们采集了50组双臂叠衣服的数据集，您可以参考我们的HuggingFace仓库的数据集来决定您的双臂工装： 
 
 
 
 ## 全流程概览
 ![](imgs/Overview_of_the_whole_process.png)
 
-## 一、工装搭建 (Tooling Setup) @马超 
+## 一、工装搭建 (Tooling Setup)  
 工装搭建请优先参考HuggingFace的LeRobot项目提供的文档。
 https://github.com/huggingface/lerobot/blob/main/examples/10_use_so100.md
 物料准备
@@ -96,7 +100,7 @@ RDK X5
 
 软件环境安装和准备
 若选择将数据集以及模型上传至huggingface或从huggingface获取资源，请配置对应环境终端代理，否则无法访问huggingface
-开发机软件环境@马超 
+开发机软件环境 
 1. 准备miniconda环境（可选）
 # 安装对应版本的Miniconda ，安装后source
 https://www.anaconda.com/docs/getting-started/miniconda/install
@@ -178,7 +182,7 @@ python lerobot/scripts/configure_motor.py \
 组装机械臂
 参考lerobot/examples/10_use_so100.md官方文档完成机械臂组装
 [图片]
-二、标定 (Calibrate Robot) @马超 
+二、标定 (Calibrate Robot)  
 1. 确保正确标注舵机以及按序正确组装机械臂后，接上两个机械臂的电源和usb口，运行以下代码以进行设备号确认
 python lerobot/scripts/find_motors_bus_port.py
 2. 修改lerobot/lerobot/common/robot_devices/robots/configs.py中‘so100’类对应设备串口
@@ -250,7 +254,7 @@ python lerobot/scripts/control_robot.py \
   --control.type=calibrate \
   --control.arms='["main_leader"]'
 [图片]
-三、遥操 (Teleoperation) @马超 @黄树坤 
+三、遥操 (Teleoperation)  @黄树坤 
 设备确认
 开始遥操作或数据采集之前运行以下命令以确认机械臂串口号
 python lerobot/scripts/find_motors_bus_port.py
@@ -303,7 +307,7 @@ python lerobot/scripts/control_robot.py \
   --robot.type=so100 \
   --robot.cameras='{}' \
   --control.type=teleoperate
-四、数采 (Record a Dataset)@马超 @黄树坤 
+四、数采 (Record a Dataset) @黄树坤 
 1. 固定两个USB摄像头至机械臂视角和外部固定视角，插入两个 USB 摄像头至 RDK后，运行以下脚本以检查摄像头的端口号，确保已修改 lerobot/common/robot_devices/cameras/opencv.py 优先读取MJPG图像。
 python lerobot/common/robot_devices/cameras/opencv.py \
     --images-dir outputs/images_from_opencv_cameras
@@ -417,7 +421,7 @@ python lerobot/scripts/control_robot.py \
 
 
 
-五、模型训练 (Train a Policy)@马超 
+五、模型训练 (Train a Policy) 
 移动数据集到开发机上
 【要点：SCP软件，什么路径，移动到什么地方】
 
@@ -617,7 +621,7 @@ python3 lerobot/scripts/train.py \
     --config_path=train_config_0409_ResNet50.json \
     --output_dir=outputs/train_config_0409_ResNet50_0001
 
-六、模型CPU部署 (Run on CPU)@马超 
+六、模型CPU部署 (Run on CPU) 
 1. 可以简单使用只调取模型进行推理的脚本
 # 需要修改脚本中对应模型权重目录
 python rdk_lerobot_tools/cpu_control_robot.py
@@ -1654,7 +1658,7 @@ Temporal Ensembling（时间集成）
 
 
 附录三、使用MiniConda虚拟环境
-在RDK X5 / S100 上安装MiniConda，并配置为清华源 @马超 
+在RDK X5 / S100 上安装MiniConda，并配置为清华源  
 参考：https://mirrors.tuna.tsinghua.edu.cn/help/anaconda/
 从清华源拉取miniconda安装脚本，这里选择py310的版本，与Ubuntu22.04的全局解释器版本对齐.
 wget https://mirrors.tuna.tsinghua.edu.cn/anaconda/miniconda/Miniconda3-py310_25.1.1-2-Linux-aarch64.sh
