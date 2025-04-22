@@ -38,7 +38,7 @@ if TYPE == "S100":
     from libpycauchyS100tools import BPU_ACTPolicy
     print("using: libpycauchyS100tools")
 if TYPE == "X5":
-    from libpycauchytools import BPU_ACTPolicy
+    from libpycauchyX5tools import BPU_ACTPolicy
     print("using: libpycauchytools")
 
 def main():
