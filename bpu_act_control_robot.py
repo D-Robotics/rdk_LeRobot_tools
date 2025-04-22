@@ -31,10 +31,13 @@ from collections import deque
 from lerobot.common.robot_devices.robots.utils import make_robot
 from lerobot.common.robot_devices.control_utils import busy_wait
 
-try:
+TYPE = "X5" 
+TYPE = "S100"
+
+if TYPE == "S100":
     from libpycauchyS100tools import BPU_ACTPolicy
     print("using: libpycauchyS100tools")
-except:
+if TYPE == "X5":
     from libpycauchytools import BPU_ACTPolicy
     print("using: libpycauchytools")
 
@@ -135,6 +138,10 @@ class RDK_ACTPolicy():
         # load BPU model
         self.bpu_policy = BPU_ACTPolicy(self.bpu_act_policy_visionencoder_path, self.bpu_act_policy_transformerlayers_path)
         self.cnt = 0
+        if TYPE == "S100":
+            self.bpu_model = self.bpu_model_S100
+        if TYPE == "X5":
+            self.bpu_model = self.bpu_model_X5
 
     def bpu_select_action(self, batch: dict[str, Tensor]) -> Tensor:
         # normalize inputs
@@ -150,11 +157,19 @@ class RDK_ACTPolicy():
             actions = self.unnormalize_outputs({"action": actions})["action"]
             self._action_queue.extend(actions.transpose(0, 1))
         return self._action_queue.popleft()
-    def bpu_model(self, batch):
+
+    def bpu_model_S100(self, batch):
         state = batch["observation.state"].numpy().copy()
         laptop = batch['observation.images.laptop'].numpy().copy()
         phone = batch['observation.images.phone'].numpy().copy()
         actions = self.bpu_policy(state, laptop, phone)
+        actions = torch.from_numpy(actions)
+        return actions
+    def bpu_model_X5(self, batch):
+        state = batch["observation.state"].numpy()[:,:,np.newaxis, np.newaxis].copy()
+        laptop = batch['observation.images.laptop'].numpy().copy()
+        phone = batch['observation.images.phone'].numpy().copy()
+        actions = self.bpu_policy(state, laptop, phone)[:,:,:,0]
         actions = torch.from_numpy(actions)
         return actions
     
@@ -167,8 +182,6 @@ class RDK_ACTPolicy():
     def unnormalize_outputs(self, batch):
         batch["action"] = batch["action"] * self.action_std_unnormalize + self.action_mean_unnormalize
         return batch
-    
-import cv2
 # Copyright 2024 The HuggingFace Inc. team. All rights reserved.
 def predict_action(observation, policy):
     observation = copy(observation)
