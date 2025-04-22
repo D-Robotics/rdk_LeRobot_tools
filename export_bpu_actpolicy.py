@@ -55,7 +55,7 @@ def main(cfg: TrainPipelineConfig):
     logging.info(pformat(cfg.to_dict()))
     # 这里只是为了美观, 不支持从外传参, 需要在文件内修改
     parser = argparse.ArgumentParser()
-    parser.add_argument('--act-path', type=str, default='lerobot_training_weights/act_0417_2arms-', help='Path to LeRobot ACT Policy model.')
+    parser.add_argument('--act-path', type=str, default='lerobot_training_weights/act_0417_2arms', help='Path to LeRobot ACT Policy model.')
     """ 
     # example: --act-path pretrained_model
     ./pretrained_model/
@@ -63,10 +63,10 @@ def main(cfg: TrainPipelineConfig):
     ├── model.safetensors
     └── train_config.json
     """
-    parser.add_argument('--export-path', type=str, default='bpu_act_0417_2arms', help='Path to save LeRobot ACT Policy model.') 
-    parser.add_argument('--cal-num', type=int, default=200, help='Num of images to generate')
+    parser.add_argument('--export-path', type=str, default='cauchy_test4', help='Path to save LeRobot ACT Policy model.') 
+    parser.add_argument('--cal-num', type=int, default=400, help='Num of images to generate')
     parser.add_argument('--onnx-sim', type=bool, default=True, help='Simplify onnx or not.') 
-    parser.add_argument('--type', type=str, default="nash-e", help='Optional: nash-e, nash-m, nash-p, bayes, bayes-e') 
+    parser.add_argument('--type', type=str, default="bayes-e", help='Optional: nash-e, nash-m, nash-p, bayes-e, bayes') 
     parser.add_argument('--combine-jobs', type=int, default=6, help='combie jobs for OpenExplore.')
 
     opt = parser.parse_args([])
@@ -208,6 +208,7 @@ def main(cfg: TrainPipelineConfig):
     # vision_feature2 = m(input_tensor)
     # # np.save(f"new_can1feature.npy", vision_feature2.detach().cpu().numpy())
 
+
     # ### 基于板端前处理对齐
     # yaml_mean = (255.0 * policy.normalize_inputs.buffer_observation_images_phone.mean[:,0,0]).cpu().numpy()[np.newaxis,:,np.newaxis,np.newaxis]
     # yaml_scale = (1.0 / (255.0 * policy.normalize_inputs.buffer_observation_images_phone.std[:,0,0])).cpu().numpy()[np.newaxis,:,np.newaxis,np.newaxis]
@@ -302,7 +303,7 @@ model_parameters:
 input_parameters:
   input_name: ""
   input_type_rt: 'featuremap'
-  input_layout_train: 'NCHW'
+  input_layout_rt: 'NCHW'
   input_type_train: 'featuremap'
   input_layout_train: 'NCHW'
   norm_type: 'no_preprocess'
@@ -332,7 +333,7 @@ model_parameters:
 input_parameters:
   input_name: "states;laptop_features;phone_features;"
   input_type_rt: 'featuremap;featuremap;featuremap;'
-  input_layout_train: 'NCHW;NCHW;NCHW;'
+  input_layout_rt: 'NCHW;NCHW;NCHW;'
   input_type_train: 'featuremap;featuremap;featuremap;'
   input_layout_train: 'NCHW;NCHW;NCHW;'
   norm_type: 'no_preprocess;no_preprocess;no_preprocess;'
@@ -399,11 +400,7 @@ echo "End of build all."
             logging.info(colored(f"mkdir: {p} Success.", 'green'))
 
         for i, batch in enumerate(dataloader):
-            break
             name = "%.10d.npy"%i
-            laptop_path = os.path.join(laptop_calbrate_data_path_BPU_ACTPolicy_TransformerLayers, name)
-            phone_path = os.path.join(phone_calbrate_data_path_BPU_ACTPolicy_TransformerLayers, name)
-            state_path = os.path.join(state_calbrate_data_path_BPU_ACTPolicy_TransformerLayers, name)
             batch = policy.normalize_inputs(batch)
             laptop_input = batch['observation.images.laptop']   
             phone_input = batch['observation.images.phone']   
@@ -434,8 +431,150 @@ echo "End of build all."
             if i >= opt.cal_num:
                 break
 
-    if "bayes" in opt.type or "bernoulli2" in opt.type:
-        pass
+
+    if "bayes" in opt.type:
+        ## config yaml
+        ### VisionEncoder
+        yaml = f'''
+model_parameters:
+  onnx_model: '{onnx_name_BPU_ACTPolicy_VisionEncoder}'
+  march: "{opt.type}"
+  layer_out_dump: False
+  working_dir: 'bpu_model_output'
+  output_model_file_prefix: '{BPU_VisionEncoder}'
+input_parameters:
+  input_name: ""
+  input_type_rt: 'featuremap'
+  input_layout_rt: 'NCHW'
+  input_type_train: 'featuremap'
+  input_layout_train: 'NCHW'
+  norm_type: 'no_preprocess'
+calibration_parameters:
+  cal_data_dir: '{calbrate_data_name_BPU_ACTPolicy_VisionEncoder}'
+  cal_data_type: 'float32'
+  calibration_type: 'default'
+  optimization: set_all_nodes_int16;set_Softmax_input_int16;set_Softmax_output_int16;
+compiler_parameters:
+  jobs: {opt.combine_jobs}
+  compile_mode: 'latency'
+  debug: true
+  optimize_level: 'O3'
+'''
+        with open(config_yaml_path_BPU_ACTPolicy_VisionEncoder, "w", encoding="utf-8") as file:
+            file.write(yaml)
+        logging.info(colored(f"Export config yaml: {config_yaml_path_BPU_ACTPolicy_VisionEncoder} success", 'green'))
+
+        ### TransformerLayers
+        yaml = f'''
+model_parameters:
+  onnx_model: '{onnx_name_BPU_ACTPolicy_TransformerLayers}'
+  march: "{opt.type}"
+  layer_out_dump: False
+  working_dir: 'bpu_model_output'
+  output_model_file_prefix: '{BPU_TransformerLayers}'
+input_parameters:
+  input_name: "states;laptop_features;phone_features;"
+  input_type_rt: 'featuremap;featuremap;featuremap;'
+  input_layout_rt: 'NCHW;NCHW;NCHW;'
+  input_type_train: 'featuremap;featuremap;featuremap;'
+  input_layout_train: 'NCHW;NCHW;NCHW;'
+  norm_type: 'no_preprocess;no_preprocess;no_preprocess;'
+calibration_parameters:
+  cal_data_dir: '{os.path.join(calbrate_data_name_BPU_ACTPolicy_TransformerLayers, "state")};{os.path.join(calbrate_data_name_BPU_ACTPolicy_TransformerLayers, "laptop")};{os.path.join(calbrate_data_name_BPU_ACTPolicy_TransformerLayers, "phone")};'
+  cal_data_type: 'float32;float32;float32;'
+  calibration_type: 'default'
+  optimization: set_all_nodes_int16;set_Softmax_input_int16;set_Softmax_output_int16;
+compiler_parameters:
+  jobs: {opt.combine_jobs}
+  compile_mode: 'latency'
+  debug: False
+  optimize_level: 'O3'
+'''
+        with open(config_yaml_path_BPU_ACTPolicy_TransformerLayers, "w", encoding="utf-8") as file:
+            file.write(yaml)
+        logging.info(colored(f"Export config yaml: {config_yaml_path_BPU_ACTPolicy_TransformerLayers} success", 'green'))
+        ## bash scripts
+        ### VisionEncoder
+        bash = f'''
+#!/bin/bash
+set -e -v
+cd $(dirname $0) || exit
+hb_mapper makertbin --model-type onnx --config {config_yaml_name_BPU_ACTPolicy_VisionEncoder}
+chmod 777 ./*
+cp bpu_model_output/{BPU_VisionEncoder}.bin ../{bpu_output_name}
+'''
+        with open(bash_path_BPU_ACTPolicy_VisionEncoder, "w", encoding="utf-8") as file:
+            file.write(bash)
+        logging.info(colored(f"Export bash scripts: {config_yaml_path_BPU_ACTPolicy_VisionEncoder} success", 'green'))
+
+        ### TransformerLayers
+        bash = f'''
+#!/bin/bash
+set -e -v
+cd $(dirname $0) || exit
+hb_mapper makertbin --model-type onnx --config {config_yaml_name_BPU_ACTPolicy_TransformerLayers}
+chmod 777 ./*
+cp bpu_model_output/{BPU_TransformerLayers}.bin ../{bpu_output_name}
+'''
+        with open(bash_path_BPU_ACTPolicy_TransformerLayers, "w", encoding="utf-8") as file:
+            file.write(bash)
+        logging.info(colored(f"Export bash scripts: {bash_path_BPU_ACTPolicy_TransformerLayers} success", 'green'))
+
+        ## all in one bash
+        bash = f'''
+#!/bin/bash
+cd {BPU_VisionEncoder} && bash {bash_name_BPU_ACTPolicy_VisionEncoder} && cd ..
+cd {BPU_TransformerLayers} && bash {bash_name_BPU_ACTPolicy_TransformerLayers} && cd ..
+echo "End of build all."
+'''
+        with open(bash_build_all_path, "w", encoding="utf-8") as file:
+            file.write(bash)
+        logging.info(colored(f"Export bash scripts: {bash_build_all_path} success", 'green'))
+
+        ## calibrate data
+        input_names_TransformerLayers = ["laptop", "phone", "state"]
+        input_cal_path = []
+        for input_name in input_names_TransformerLayers:
+            p = os.path.join(calbrate_data_path_BPU_ACTPolicy_TransformerLayers, input_name)
+            input_cal_path.append(p)
+            os.makedirs(p, exist_ok=True)
+            logging.info(colored(f"mkdir: {p} Success.", 'green'))
+
+        for i, batch in enumerate(dataloader):
+            name = "%.10d.nchw"%i
+            batch = policy.normalize_inputs(batch)
+            laptop_input = batch['observation.images.laptop']   
+            phone_input = batch['observation.images.phone']   
+            state_input = batch["observation.state"]
+            ## VisionEncoder
+            if i%4 == 0:
+                p = os.path.join(calbrate_data_path_BPU_ACTPolicy_VisionEncoder, "laptop_" + name)
+                laptop_input.detach().cpu().numpy().tofile(p)
+                logging.info(colored(f"save to: {p}", 'light_blue'))
+                p = os.path.join(calbrate_data_path_BPU_ACTPolicy_VisionEncoder, "phone_" + name)
+                phone_input.detach().cpu().numpy().tofile(p)
+                logging.info(colored(f"save to: {p}", 'light_blue'))
+            ## TransformerLayers
+            laptop_vision_feature1 = m_VisionEncoder(laptop_input)
+            p = os.path.join(laptop_calbrate_data_path_BPU_ACTPolicy_TransformerLayers, name)
+            laptop_vision_feature1.detach().cpu().numpy().tofile(p)
+            logging.info(colored(f"save to: {p}", 'light_magenta'))
+
+            phone_vision_feature2 = m_VisionEncoder(phone_input)
+            p = os.path.join(phone_calbrate_data_path_BPU_ACTPolicy_TransformerLayers, name)
+            phone_vision_feature2.detach().cpu().numpy().tofile(p)
+            logging.info(colored(f"save to: {p}", 'light_magenta'))
+
+            p = os.path.join(state_calbrate_data_path_BPU_ACTPolicy_TransformerLayers, name)
+            state_input.detach().cpu().numpy().tofile(p)
+            logging.info(colored(f"save to: {p}", 'light_magenta'))
+
+            if i >= opt.cal_num:
+                break
+
+    if "bernoulli2" in opt.type:
+        print("I have no time to do this. But Bernoulli2 is very similiar with Bayes.")
+        exit()
 
     # 提示词
     print()
@@ -451,6 +590,10 @@ echo "End of build all."
     print()
 
     print(colored("="*80, 'light_green'), "\n")
+
+
+
+
 
 def onnx_sim(opt):
     if opt.onnx_sim:
@@ -504,6 +647,7 @@ class BPU_ACTPolicy_TransformerLayers(nn.Module):
         # all_cam_features.append(vision_feature2)
         # all_cam_pos_embeds.append(cam_pos_embed)
 
+
         tokens = []
         for token in encoder_in_tokens:
             tokens.append(token.view(1,1,self.model.config.dim_model))
@@ -517,6 +661,7 @@ class BPU_ACTPolicy_TransformerLayers(nn.Module):
         all_cam_pos_embeds = torch.cat(all_cam_pos_embeds, axis=-1).permute(2, 3, 0, 1).view(-1,1,self.model.config.dim_model)
         pos_embeds.append(all_cam_pos_embeds)
         encoder_in_pos_embed = torch.cat(pos_embeds, axis=0)
+
 
         # all_cam_features = torch.cat(all_cam_features, axis=-1)
         # encoder_in_tokens.extend(einops.rearrange(all_cam_features, "b c h w -> (h w) b c"))
