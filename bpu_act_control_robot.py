@@ -99,8 +99,16 @@ class RDK_ACTPolicy():
         self.action_mean_path = os.path.join(bpu_act_model_path, "action_mean.npy")
         self.action_std_unnormalize_path = os.path.join(bpu_act_model_path, "action_std_unnormalize.npy")
         self.action_mean_unnormalize_path = os.path.join(bpu_act_model_path, "action_mean_unnormalize.npy")
-        self.bpu_act_policy_visionencoder_path = os.path.join(bpu_act_model_path,"BPU_ACTPolicy_VisionEncoder.hbm")
-        self.bpu_act_policy_transformerlayers_path = os.path.join(bpu_act_model_path,"BPU_ACTPolicy_TransformerLayers.hbm")
+
+        if TYPE == "S100":
+            self.bpu_model = self.bpu_model_S100
+            self.bpu_act_policy_visionencoder_path = os.path.join(bpu_act_model_path,"BPU_ACTPolicy_VisionEncoder.hbm")
+            self.bpu_act_policy_transformerlayers_path = os.path.join(bpu_act_model_path,"BPU_ACTPolicy_TransformerLayers.hbm")
+        if TYPE == "X5":
+            self.bpu_model = self.bpu_model_X5
+            self.bpu_act_policy_visionencoder_path = os.path.join(bpu_act_model_path,"BPU_ACTPolicy_VisionEncoder.bin")
+            self.bpu_act_policy_transformerlayers_path = os.path.join(bpu_act_model_path,"BPU_ACTPolicy_TransformerLayers.bin")
+        
         # check
         paths = {
             "laptop_std_path": self.laptop_std_path,
@@ -138,10 +146,7 @@ class RDK_ACTPolicy():
         # load BPU model
         self.bpu_policy = BPU_ACTPolicy(self.bpu_act_policy_visionencoder_path, self.bpu_act_policy_transformerlayers_path)
         self.cnt = 0
-        if TYPE == "S100":
-            self.bpu_model = self.bpu_model_S100
-        if TYPE == "X5":
-            self.bpu_model = self.bpu_model_X5
+            
 
     def bpu_select_action(self, batch: dict[str, Tensor]) -> Tensor:
         # normalize inputs
