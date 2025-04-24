@@ -46,8 +46,9 @@ D-Robotics Developer Community English Blog: https://developer.d-robotics.cc/en/
     - [Model Training (Train a Policy)](#model-training-train-a-policy)
     - [Model Deployment (Run)](#model-deployment-run)
   - [Appendix 2: BPU Deployment Analysis](#appendix-2-bpu-deployment-analysis)
-  - [Appendix 3: Using MiniConda Virtual Environment](#appendix-3-using-miniconda-virtual-environment)
-  - [Appendix 4: Troubleshooting](#appendix-4-troubleshooting)
+  - [Appendix 3: Accessories list](#appendix-3-accessories-list)
+  - [Appendix 4: Using MiniConda Virtual Environment](#appendix-4-using-miniconda-virtual-environment)
+  - [Appendix 5: Troubleshooting](#appendix-5-troubleshooting)
       - [FFmpeg Error Troubleshooting](#ffmpeg-error-troubleshooting)
       - [Robotic Arm Oscillating at One Position](#robotic-arm-oscillating-at-one-position)
       - [Unable to Use Two USB Cameras](#unable-to-use-two-usb-cameras)
@@ -963,7 +964,23 @@ Since the vision encoder is invoked multiple times (once per camera), it is expo
 
 ---
 
-## Appendix 3: Using MiniConda Virtual Environment
+## Appendix 3: Accessories list
+
+|Material Name|Reference Image|Quantity|Remarks|
+|----|----|----|----|
+|3D Printed Parts|![](imgs/3Dprint_so100.png)|1 set|STL file location: [GITHUB](https://github.com/TheRobotStudio/SO-ARM100/tree/main/stl_files_for_3dprinting), can be 3D printed via Taobao shops|
+|Feetech STS3215 Servo Motor|![](imgs/feetech_sts3215.png)|12|Reference link: [Official Website](https://www.feetechrc.com/74v-19-kgcm-plastic-case-metal-tooth-magnetic-code-double-axis-ttl-series-steering-gear.html)|
+|Waveshare Servo Motor Driver Board|![](imgs/Motor_Control_Board.png)|2|Reference link: [Official Website](https://www.waveshare.net/shop/Bus-Servo-Adapter-A.htm)|
+|12V 2A Power Adapter|![](imgs/Power_12v_2A.png)|2|Reference link: [Official Website](https://www.lulian.cn/product/232-cn.html)|
+|Desktop Carpenter Clamp|![](imgs/Carpenter_clamp.png)|4|Reference link: [Taobao](https://detail.tmall.com/item.htm?id=801399113134&skuId=5633627126649), choose size based on desktop thickness|
+|Type-C Data Cable|![](imgs/usb-Type-c.png)|2|Reference link: [Taobao](https://detail.tmall.com/item.htm?id=44425281296)|
+|Screwdriver Set|![](imgs/screwdriver.png)|1|Reference link: [Taobao](https://detail.tmall.com/item.htm?id=675684600845&skuId=4856851392176), purchase as needed|
+|USB Camera|![](imgs/usb_sensor.png)|2|Reference link: [JD.com](https://item.jd.com/100017777326.html), purchase as needed|
+|RDK S100|![](imgs/s100.png)|Recommended|[https://developer.d-robotics.cc/rdks100](https://developer.d-robotics.cc/rdks100)|
+|RDK X5|![](imgs/rdk_x5.jpg)|Optional|[https://developer.d-robotics.cc/rdkx5](https://developer.d-robotics.cc/rdkx5)| 
+
+
+## Appendix 4: Using MiniConda Virtual Environment
 
 Install MiniConda on RDK X5 / S100 and configure it to use the Tsinghua mirror.
 
@@ -1058,7 +1075,7 @@ If the terminal prompt shows `(base)` at the beginning, the installation was suc
 (base) root@ubuntu:~#
 ```
 
-## Appendix 4: Troubleshooting
+## Appendix 5: Troubleshooting
 
 #### FFmpeg Error Troubleshooting
 If you encounter an issue where FFmpeg cannot find the `libx264` encoder, it is likely that the precompiled FFmpeg binary you are using was built without GPL components. To resolve this, uninstall the current FFmpeg and install a version that includes GPL support.

@@ -49,8 +49,9 @@
     - [模型训练 (Train a Policy)](#模型训练-train-a-policy)
     - [模型部署 (Run)](#模型部署-run)
   - [附录二、BPU部署原理分析](#附录二bpu部署原理分析)
-  - [附录三、使用MiniConda虚拟环境](#附录三使用miniconda虚拟环境)
-  - [附录四、常见问题排查](#附录四常见问题排查)
+  - [附录三、配件清单](#附录三配件清单)
+  - [附录四、使用MiniConda虚拟环境](#附录四使用miniconda虚拟环境)
+  - [附录五、常见问题排查](#附录五常见问题排查)
       - [ffmpeg错误排查](#ffmpeg错误排查)
       - [机械臂在一个位置反复震荡](#机械臂在一个位置反复震荡)
       - [无法使用两个USB摄像头](#无法使用两个usb摄像头)
@@ -972,10 +973,25 @@ Temporal Ensembling（时间集成）
 
 ![](imgs/BPU_deploy_analysis.png)
 
+## 附录三、配件清单
+
+|物料名称|外观照片参考|数量|备注|
+|----|----|----|----|
+|3D 打印部件|![](imgs/3Dprint_so100.png)|1 套|STL 文件地址：[GITHUB](https://github.com/TheRobotStudio/SO-ARM100/tree/main/stl_files_for_3dprinting)，可选择淘宝店铺进行 3D 打印|
+|飞特 STS3215 舵机|![](imgs/feetech_sts3215.png)|12|参考链接：[官网](https://www.feetechrc.com/74v-19-kgcm-plastic-case-metal-tooth-magnetic-code-double-axis-ttl-series-steering-gear.html)|
+|微雪舵机驱动板|![](imgs/Motor_Control_Board.png)|2|参考链接：[官网](https://www.waveshare.net/shop/Bus-Servo-Adapter-A.htm)|
+|电源适配器 12V 2A|![](imgs/Power_12v_2A.png)|2|参考链接：[官网](https://www.lulian.cn/product/232-cn.html)|
+|桌面木工夹|![](imgs/Carpenter_clamp.png)|4|参考链接：[淘宝](https://detail.tmall.com/item.htm?id=801399113134&skuId=5633627126649)，根据桌面厚度选择尺寸|
+|Type-c 数据线|![](imgs/usb-Type-c.png)|2|参考链接：[淘宝](https://detail.tmall.com/item.htm?id=44425281296)|
+|螺丝刀套装|![](imgs/screwdriver.png)|1|参考链接：[淘宝](https://detail.tmall.com/item.htm?id=675684600845&skuId=4856851392176)，按需购买|
+|USB 摄像头|![](imgs/usb_sensor.png)|2|参考链接：[京东](https://item.jd.com/100017777326.html)，按需购买|
+|RDK S100|![](imgs/s100.png)|推荐|[https://developer.d-robotics.cc/rdks100](https://developer.d-robotics.cc/rdks100)|
+|RDK X5|![](imgs/rdk_x5.jpg)|可选|[https://developer.d-robotics.cc/rdkx5](https://developer.d-robotics.cc/rdkx5)| 
 
 
 
-## 附录三、使用MiniConda虚拟环境
+
+## 附录四、使用MiniConda虚拟环境
 
 在RDK X5 / S100 上安装MiniConda，并配置为清华源  
 
@@ -1070,7 +1086,7 @@ source ~/.bashrc
 (base) root@ubuntu:~# 
 ```
 
-## 附录四、常见问题排查
+## 附录五、常见问题排查
 
 #### ffmpeg错误排查
 如果出现ffmpeg找不到libx264编码器的问题，可能是预编译二进制包的ffmpeg在编译时屏蔽了GPL的部分，解决方法是卸载对应的ffmpeg，同时安装支持GPL部分的ffmpeg.
