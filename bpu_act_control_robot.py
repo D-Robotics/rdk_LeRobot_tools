@@ -35,11 +35,19 @@ TYPE = "X5"
 TYPE = "S100"
 
 if TYPE == "S100":
-    from libpycauchyS100tools import BPU_ACTPolicy
-    print("using: libpycauchyS100tools")
+    try:
+        from libpycauchyS100tools import BPU_ACTPolicy
+        print("using: libpycauchyS100tools")
+    except:
+        print("libpycauchyS100tools not found, please check!")
+        exit()
 if TYPE == "X5":
-    from libpycauchyX5tools import BPU_ACTPolicy
-    print("using: libpycauchytools")
+    try:
+        from libpycauchyX5tools import BPU_ACTPolicy
+        print("using: libpycauchyX5tools")
+    except:
+        print("libpycauchyX5tools not found, please check!")
+        exit()
 
 def main():
     parser = argparse.ArgumentParser()

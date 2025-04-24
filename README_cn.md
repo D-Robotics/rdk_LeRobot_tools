@@ -193,11 +193,11 @@ cd lerobot && pip install -e ".[feetech]"
 ### 基于公开版本的LeRobot修改说明
 1. 所有的操作基于lerobot 仓库目录，目录下有lerobot目录，作为lerobot的package。所有的修改都以新增配置文件为主，不会特别的去修改LeRobot的源代码文件。
    
-2. 新增 `rdk_lerobot_tools/cpu_act_control_robot.py` 文件，作为ACT Policy CPU推理启动的入口。
+2. 新增 `rdk_LeRobot_tools/cpu_act_control_robot.py` 文件，作为ACT Policy CPU推理启动的入口。
    
-3. 新增 `rdk_lerobot_tools/bpu_act_control_robot.py` 文件，作为ACT Policy BPU推理启动的入口。
+3. 新增 `rdk_LeRobot_tools/bpu_act_control_robot.py` 文件，作为ACT Policy BPU推理启动的入口。
    
-4. 新增 `rdk_lerobot_tools/export_bpu_actpolicy.py` 文件，导出ACT Policy为ONNX，准备校准数据，yaml文件和BPU模型量化编译脚本。
+4. 新增 `rdk_LeRobot_tools/export_bpu_actpolicy.py` 文件，导出ACT Policy为ONNX，准备校准数据，yaml文件和BPU模型量化编译脚本。
    
 5. 修改 `lerobot/lerobot/common/datasets/video_utils.py` 文件中`encode_video_frames`方法以适配RDK上的视频格式，把libsvtav1改成libx264.
 ```bash
@@ -638,7 +638,7 @@ python lerobot/scripts/train.py \
 
 ```bash
 # 需要修改脚本中对应模型权重目录
-python rdk_lerobot_tools/cpu_control_robot.py
+python rdk_LeRobot_tools/cpu_control_robot.py
 ```
 
 2. 也可以使用control_robot.py脚本record方法使推理和记录评估数据集同步进行
@@ -674,7 +674,7 @@ python lerobot/scripts/control_robot.py \
 └── train_config.json
 ```
 
-使用rdk_lerobot_tools/export_bpu_actpolicy.py准备校准数据。我们需要在文件中修改浮点权重的路径，和一些其他的参数，大约在第51行。
+使用rdk_LeRobot_tools/export_bpu_actpolicy.py准备校准数据。我们需要在文件中修改浮点权重的路径，和一些其他的参数，大约在第51行。
 
 ```python
 parser = argparse.ArgumentParser()
@@ -697,7 +697,7 @@ opt = parser.parse_args([])
 这里的参数和您训练时是一致的，一般需要修改的参数是--dataset.repo_id来指定您所使用的数据集。事实上，这个导出脚本是基于训练脚本编写，会帮您导出模型到ONNX，同时准备好校准数据。
 
 ```bash
-python rdk_lerobot_tools/export_bpu_actpolicy.py \
+python rdk_LeRobot_tools/export_bpu_actpolicy.py \
   --dataset.repo_id=MaCCChhh/so100_0417_test1 \
   --policy.type=act \
   --policy.device=cpu \
@@ -770,7 +770,7 @@ $ tree bpu_output_act_0417_2arms
 运行以下脚本即可使用BPU推理ACT Policy模型。每次ACT算法推理时，BPU以100%的占用爆发推理50毫秒，生成50组机械臂动作，动作执行时BPU占用静息到0%，50组机械臂动作执行完后，BPU开启下一轮算法推理。
 
 ```bash
-python rdk_lerobot_tools/bpu_act_control_robot.py 
+python rdk_LeRobot_tools/bpu_act_control_robot.py 
 ```
 
 与纯CPU推理相比，由于BPU的强大爆发的推理算力，已经没有了动作和动作间的卡顿。
