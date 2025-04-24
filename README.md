@@ -189,11 +189,11 @@ cd lerobot && pip install -e ".[feetech]"
 ### Modifications Based on the Public Version of LeRobot
 1. All operations are based on the `lerobot` repository directory, which contains the `lerobot` directory as a package. Most modifications involve adding configuration files rather than altering the source code of LeRobot.
      
-2. Added `rdk_lerobot_tools/cpu_act_control_robot.py` as the entry point for ACT Policy CPU inference.
+2. Added `rdk_LeRobot_tools/cpu_act_control_robot.py` as the entry point for ACT Policy CPU inference.
      
-3. Added `rdk_lerobot_tools/bpu_act_control_robot.py` as the entry point for ACT Policy BPU inference.
+3. Added `rdk_LeRobot_tools/bpu_act_control_robot.py` as the entry point for ACT Policy BPU inference.
      
-4. Added `rdk_lerobot_tools/export_bpu_actpolicy.py` for exporting ACT Policy to ONNX, preparing calibration data, YAML files, and BPU model quantization and compilation scripts.
+4. Added `rdk_LeRobot_tools/export_bpu_actpolicy.py` for exporting ACT Policy to ONNX, preparing calibration data, YAML files, and BPU model quantization and compilation scripts.
      
 5. Modified the `lerobot/lerobot/common/datasets/video_utils.py` file in the `encode_video_frames` method to adapt to video formats on RDK. Changed `libsvtav1` to `libx264`.
 ```bash
@@ -619,7 +619,7 @@ When `--wandb.enable=true` is set, you can view the training curves on the `wand
 
 ```bash
 # Update the script with the correct model weight directory
-python rdk_lerobot_tools/cpu_control_robot.py
+python rdk_LeRobot_tools/cpu_control_robot.py
 ```
 
 2. Alternatively, you can use the `control_robot.py` script with the `record` method to perform inference and simultaneously record evaluation datasets:
@@ -655,7 +655,7 @@ Export the LeRobot safetensors model to ONNX and prepare calibration data. After
 └── train_config.json
 ```
 
-Use the `rdk_lerobot_tools/export_bpu_actpolicy.py` script to prepare calibration data. Update the script with the path to the floating-point weights and other parameters, starting around line 51:
+Use the `rdk_LeRobot_tools/export_bpu_actpolicy.py` script to prepare calibration data. Update the script with the path to the floating-point weights and other parameters, starting around line 51:
 
 ```python
 parser = argparse.ArgumentParser()
@@ -678,7 +678,7 @@ opt = parser.parse_args([])
 Ensure the parameters match those used during training. Typically, you need to update the `--dataset.repo_id` parameter to specify the dataset used. This export script, based on the training script, will export the model to ONNX and prepare calibration data.
 
 ```bash
-python rdk_lerobot_tools/export_bpu_actpolicy.py \
+python rdk_LeRobot_tools/export_bpu_actpolicy.py \
     --dataset.repo_id=MaCCChhh/so100_0417_test1 \
     --policy.type=act \
     --policy.device=cpu \
@@ -752,7 +752,7 @@ $ tree bpu_output_act_0417_2arms
 Copy the BPU ACT Policy model to the RDK board and update the path to your `bpu_output` folder. Note that the model path provided to the `BPU_ACTPolicy` class should be the folder path. Run the following script to use the BPU for ACT Policy model inference. During each inference, the BPU operates at 100% utilization for 50 milliseconds to generate 50 robotic arm actions. While the actions are being executed, the BPU utilization drops to 0%. Once the 50 actions are completed, the BPU starts the next round of inference.
 
 ```bash
-python rdk_lerobot_tools/bpu_act_control_robot.py 
+python rdk_LeRobot_tools/bpu_act_control_robot.py 
 ```
 
 Compared to pure CPU inference, the powerful burst inference capability of the BPU eliminates the latency between actions.
