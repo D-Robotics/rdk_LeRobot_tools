@@ -313,6 +313,7 @@ calibration_parameters:
   calibration_type: 'default'
   optimization: set_all_nodes_int16
 compiler_parameters:
+  extra_params: {{'input_no_padding': True, 'output_no_padding': True}}
   jobs: {opt.combine_jobs}
   compile_mode: 'latency'
   debug: true
