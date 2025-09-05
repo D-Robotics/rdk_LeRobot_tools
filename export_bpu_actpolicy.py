@@ -23,19 +23,19 @@ import shutil
 import cv2
 import numpy as np
 import torch
+import torch.nn as nn
 import argparse
 import logging
 import onnx
-import torch
 from copy import deepcopy
 from termcolor import colored
 from onnxsim import simplify
 from termcolor import colored
 from pprint import pformat
 
-from lerobot.common.policies.act.modeling_act import *
-from lerobot.common.datasets.factory import make_dataset
-from lerobot.common.utils.utils import get_safe_torch_device, init_logging
+from lerobot.policies.act.modeling_act import ACTPolicy
+from lerobot.datasets.factory import make_dataset
+from lerobot.utils.utils import get_safe_torch_device, init_logging
 from lerobot.configs import parser
 from lerobot.configs.train import TrainPipelineConfig
 
@@ -55,7 +55,7 @@ def main(cfg: TrainPipelineConfig):
     logging.info(pformat(cfg.to_dict()))
     # 这里只是为了美观, 不支持从外传参, 需要在文件内修改
     parser = argparse.ArgumentParser()
-    parser.add_argument('--act-path', type=str, default='lerobot_training_weights/act_0417_2arms', help='Path to LeRobot ACT Policy model.')
+    parser.add_argument('--act-path', type=str, default='outputs/train/act_so100_test/checkpoints/001000/pretrained_model', help='Path to LeRobot ACT Policy model.')
     """ 
     # example: --act-path pretrained_model
     ./pretrained_model/
@@ -63,10 +63,10 @@ def main(cfg: TrainPipelineConfig):
     ├── model.safetensors
     └── train_config.json
     """
-    parser.add_argument('--export-path', type=str, default='cauchy_test4', help='Path to save LeRobot ACT Policy model.') 
+    parser.add_argument('--export-path', type=str, default='marcelo_test1', help='Path to save LeRobot ACT Policy model.') 
     parser.add_argument('--cal-num', type=int, default=400, help='Num of images to generate')
     parser.add_argument('--onnx-sim', type=bool, default=True, help='Simplify onnx or not.') 
-    parser.add_argument('--type', type=str, default="bayes-e", help='Optional: nash-e, nash-m, nash-p, bayes-e, bayes') 
+    parser.add_argument('--type', type=str, default="nash-e", help='Optional: nash-e, nash-m, nash-p, bayes-e, bayes') 
     parser.add_argument('--combine-jobs', type=int, default=6, help='combie jobs for OpenExplore.')
 
     opt = parser.parse_args([])
@@ -87,8 +87,6 @@ def main(cfg: TrainPipelineConfig):
     calbrate_data_path_BPU_ACTPolicy_VisionEncoder = os.path.join(visionEncoder_ws, calbrate_data_name_BPU_ACTPolicy_VisionEncoder)
     calbrate_data_name_BPU_ACTPolicy_TransformerLayers = "calibration_data_" + BPU_TransformerLayers
     calbrate_data_path_BPU_ACTPolicy_TransformerLayers = os.path.join(transformersLayers_ws, calbrate_data_name_BPU_ACTPolicy_TransformerLayers)
-    laptop_calbrate_data_path_BPU_ACTPolicy_TransformerLayers = os.path.join(calbrate_data_path_BPU_ACTPolicy_TransformerLayers, "laptop")
-    phone_calbrate_data_path_BPU_ACTPolicy_TransformerLayers = os.path.join(calbrate_data_path_BPU_ACTPolicy_TransformerLayers, "phone")
     state_calbrate_data_path_BPU_ACTPolicy_TransformerLayers = os.path.join(calbrate_data_path_BPU_ACTPolicy_TransformerLayers, "state")
     ## 导出yaml配置文件路径
     config_yaml_name_BPU_ACTPolicy_VisionEncoder = "config_" + BPU_VisionEncoder + ".yaml"
@@ -105,10 +103,6 @@ def main(cfg: TrainPipelineConfig):
     bpu_output_path = os.path.join(opt.export_path, bpu_output_name)
     bash_build_all_path = os.path.join(opt.export_path, "build_all.sh") 
     ## 前后处理参数文件路径
-    laptop_std_path = os.path.join(bpu_output_path, "laptop_std.npy")  
-    laptop_mean_path = os.path.join(bpu_output_path, "laptop_mean.npy")
-    phone_std_path = os.path.join(bpu_output_path, "phone_std.npy")
-    phone_mean_path = os.path.join(bpu_output_path, "phone_mean.npy")
     action_std_path = os.path.join(bpu_output_path, "action_std.npy")
     action_mean_path = os.path.join(bpu_output_path, "action_mean.npy")
     action_std_unnormalize_path = os.path.join(bpu_output_path, "action_std_unnormalize.npy")
@@ -122,10 +116,6 @@ def main(cfg: TrainPipelineConfig):
     logging.info(colored(f"mkdir: {calbrate_data_path_BPU_ACTPolicy_VisionEncoder} Success.", 'green'))
     os.makedirs(calbrate_data_path_BPU_ACTPolicy_TransformerLayers, exist_ok=True)
     logging.info(colored(f"mkdir: {calbrate_data_path_BPU_ACTPolicy_TransformerLayers} Success.", 'green'))
-    os.makedirs(laptop_calbrate_data_path_BPU_ACTPolicy_TransformerLayers, exist_ok=True)
-    logging.info(colored(f"mkdir: {laptop_calbrate_data_path_BPU_ACTPolicy_TransformerLayers} Success.", 'green'))
-    os.makedirs(phone_calbrate_data_path_BPU_ACTPolicy_TransformerLayers, exist_ok=True)
-    logging.info(colored(f"mkdir: {phone_calbrate_data_path_BPU_ACTPolicy_TransformerLayers} Success.", 'green'))
     os.makedirs(state_calbrate_data_path_BPU_ACTPolicy_TransformerLayers, exist_ok=True)
     logging.info(colored(f"mkdir: {state_calbrate_data_path_BPU_ACTPolicy_TransformerLayers} Success.", 'green'))
     os.makedirs(bpu_output_path, exist_ok=True)
@@ -156,28 +146,41 @@ def main(cfg: TrainPipelineConfig):
     logging.info(colored(f"Load ACT Policy Dataset: \n{dataset} Success.", 'light_red'))
 
     # Export
-    ## 拿到一组数据
-    kvs = ['observation.images.laptop', 'observation.images.phone', 'observation.state']
+    ## 动态获取相机名称和数据
     batch = next(iter(dataloader))
+    image_keys = [key for key in batch.keys() if key.startswith('observation.images.')]
+    camera_names = [key.split('.')[-1] for key in image_keys]  # 提取相机名称
+    kvs = image_keys + ['observation.state']
     batch = dict(filter(lambda item: item[0] in kvs, batch.items()))
+    
+    logging.info(f"Detected cameras: {camera_names}")
+    logging.info(f"Using keys: {kvs}")
     
     ## dirty run
     outputs = policy.select_action(deepcopy(batch))
 
-    ## 前后处理参数
-    laptop_std = policy.normalize_inputs.buffer_observation_images_laptop.std.data.detach().cpu().numpy()
-    laptop_mean = policy.normalize_inputs.buffer_observation_images_laptop.mean.data.detach().cpu().numpy()
-    phone_std = policy.normalize_inputs.buffer_observation_images_phone.std.data.detach().cpu().numpy()
-    phone_mean = policy.normalize_inputs.buffer_observation_images_phone.mean.data.detach().cpu().numpy()
+    ## 动态获取前后处理参数
+    # 为每个相机保存归一化参数
+    for camera_name in camera_names:
+        buffer_name = f"buffer_observation_images_{camera_name}"
+        if hasattr(policy.normalize_inputs, buffer_name):
+            buffer = getattr(policy.normalize_inputs, buffer_name)
+            camera_std = buffer.std.data.detach().cpu().numpy()
+            camera_mean = buffer.mean.data.detach().cpu().numpy()
+            
+            camera_std_path = os.path.join(bpu_output_path, f"{camera_name}_std.npy")
+            camera_mean_path = os.path.join(bpu_output_path, f"{camera_name}_mean.npy")
+            
+            np.save(camera_std_path, camera_std)
+            np.save(camera_mean_path, camera_mean)
+            logging.info(f"Saved {camera_name} normalization parameters")
+
+    # 保存状态和动作归一化参数
     action_std = policy.normalize_inputs.buffer_observation_state.std.data.detach().cpu().numpy()
     action_mean = policy.normalize_inputs.buffer_observation_state.mean.data.detach().cpu().numpy()
     action_std_unnormalize = policy.unnormalize_outputs.buffer_action.std.data.detach().cpu().numpy()
     action_mean_unnormalize = policy.unnormalize_outputs.buffer_action.mean.data.detach().cpu().numpy()
 
-    np.save(laptop_std_path, laptop_std)
-    np.save(laptop_mean_path, laptop_mean)
-    np.save(phone_std_path, phone_std)
-    np.save(phone_mean_path, phone_mean)
     np.save(action_std_path, action_std)
     np.save(action_mean_path, action_mean)
     np.save(action_std_unnormalize_path, action_std_unnormalize)   
@@ -235,10 +238,17 @@ def main(cfg: TrainPipelineConfig):
     # vision_feature2 = m(input_tensor)
     # # np.save(f"new_cv2_can0feature.npy", vision_feature2.detach().cpu().numpy())
 
-    input_tensor = batch['observation.images.laptop']   
-    vision_feature1 = m_VisionEncoder(input_tensor)
-    input_tensor = batch['observation.images.phone']   
-    vision_feature2 = m_VisionEncoder(input_tensor)
+    # 动态获取相机视觉特征
+    vision_features = []
+    for camera_name in camera_names:
+        input_tensor = batch[f'observation.images.{camera_name}']
+        vision_feature = m_VisionEncoder(input_tensor)
+        vision_features.append(vision_feature)
+        logging.info(f"Generated vision features for {camera_name}: {vision_feature.shape}")
+
+    # 确定ONNX版本
+    opset_version = 11 if "bayes" in opt.type else 19
+    logging.info(f"Using ONNX opset version: {opset_version} for type: {opt.type}")
 
     onnx_path = onnx_path_BPU_ACTPolicy_VisionEncoder
     torch.onnx.export(
@@ -246,7 +256,7 @@ def main(cfg: TrainPipelineConfig):
         input_tensor,  # 模型的输入
         onnx_path,  # 输出文件名
         export_params=True,  # 存储训练后的参数
-        opset_version=11,  # ONNX版本
+        opset_version=opset_version,  # 动态ONNX版本
         do_constant_folding=True,  # 是否执行常量折叠优化
         input_names=['images'],  # 输入节点名称
         output_names=['Vision_Features'],  # 输出节点名称
@@ -255,34 +265,26 @@ def main(cfg: TrainPipelineConfig):
     onnx_sim(onnx_path, opt.onnx_sim)
     logging.info(colored(f"Export {onnx_path} Success.", 'green'))
 
-    m_TransformerLayers = BPU_ACTPolicy_TransformerLayers(policy)
+    m_TransformerLayers = BPU_ACTPolicy_TransformerLayers(policy, camera_names)
     m_TransformerLayers.eval()
 
-    # # cv2 前处理
-    # state = batch["observation.state"]
-    # states_mean = policy.normalize_inputs.buffer_observation_state.mean.data
-    # states_std = policy.normalize_inputs.buffer_observation_state.std.data
-    # state = (state - states_mean) / states_std
-    # np.save(f"new_cv2_state.npy", state.detach().cpu().numpy())
-
-    # HuggingFace 前处理
-    # state = batch["observation.state"]
-    # state = policy.normalize_inputs({"observation.state": state})["observation.state"]
-    # np.save(f"new_state.npy", state.detach().cpu().numpy())
-
     state = batch["observation.state"]
-    actions = m_TransformerLayers(state, vision_feature1, vision_feature2)
+    actions = m_TransformerLayers(state, *vision_features)
     np.save(f"new_actions.npy", actions.detach().cpu().numpy())
+
+    # 动态构建输入名称
+    input_names = ['states'] + [f'{camera_name}_features' for camera_name in camera_names]
+    logging.info(f"Transformer input names: {input_names}")
 
     onnx_path = onnx_path_BPU_ACTPolicy_TransformerLayers
     torch.onnx.export(
         m_TransformerLayers,  # 要转换的模型
-        (state, vision_feature1, vision_feature2),  # 模型的输入
+        (state, *vision_features),  # 模型的输入
         onnx_path,  # 输出文件名
         export_params=True,  # 存储训练后的参数
-        opset_version=11,  # ONNX版本
+        opset_version=opset_version,  # 动态ONNX版本
         do_constant_folding=True,  # 是否执行常量折叠优化
-        input_names=['states', 'laptop_features', 'phone_features'],  # 输入节点名称
+        input_names=input_names,  # 动态输入节点名称
         output_names=['Actions'],  # 输出节点名称
         dynamic_axes=None
     )
@@ -323,7 +325,23 @@ compiler_parameters:
             file.write(yaml)
         logging.info(colored(f"Export config yaml: {config_yaml_path_BPU_ACTPolicy_VisionEncoder} success", 'green'))
 
-        ### TransformerLayers
+        ### TransformerLayers - 动态生成相机配置
+        # 构建输入名称字符串
+        input_name_list = ['states'] + [f'{camera_name}_features' for camera_name in camera_names]
+        input_name_str = ';'.join(input_name_list) + ';'
+        
+        # 构建输入类型字符串
+        input_type_list = ['featuremap'] * len(input_name_list)
+        input_type_str = ';'.join(input_type_list) + ';'
+        
+        # 构建校准数据路径字符串
+        cal_data_dirs = [os.path.join(calbrate_data_name_BPU_ACTPolicy_TransformerLayers, "state")]
+        cal_data_dirs.extend([os.path.join(calbrate_data_name_BPU_ACTPolicy_TransformerLayers, camera_name) for camera_name in camera_names])
+        cal_data_dir_str = ';'.join(cal_data_dirs) + ';'
+        
+        # 构建数据类型字符串
+        cal_data_type_str = ';'.join(['float32'] * len(input_name_list)) + ';'
+        
         yaml = f'''
 model_parameters:
   onnx_model: '{onnx_name_BPU_ACTPolicy_TransformerLayers}'
@@ -332,15 +350,15 @@ model_parameters:
   working_dir: 'bpu_model_output'
   output_model_file_prefix: '{BPU_TransformerLayers}'
 input_parameters:
-  input_name: "states;laptop_features;phone_features;"
-  input_type_rt: 'featuremap;featuremap;featuremap;'
+  input_name: "{input_name_str}"
+  input_type_rt: '{input_type_str}'
   input_layout_rt: 'NCHW;NCHW;NCHW;'
-  input_type_train: 'featuremap;featuremap;featuremap;'
+  input_type_train: '{input_type_str}'
   input_layout_train: 'NCHW;NCHW;NCHW;'
   norm_type: 'no_preprocess;no_preprocess;no_preprocess;'
 calibration_parameters:
-  cal_data_dir: '{os.path.join(calbrate_data_name_BPU_ACTPolicy_TransformerLayers, "state")};{os.path.join(calbrate_data_name_BPU_ACTPolicy_TransformerLayers, "laptop")};{os.path.join(calbrate_data_name_BPU_ACTPolicy_TransformerLayers, "phone")};'
-  cal_data_type: 'float32;float32;float32;'
+  cal_data_dir: '{cal_data_dir_str}'
+  cal_data_type: '{cal_data_type_str}'
   calibration_type: 'default'
   optimization: set_all_nodes_int16
 compiler_parameters:
@@ -391,8 +409,8 @@ echo "End of build all."
             file.write(bash)
         logging.info(colored(f"Export bash scripts: {bash_build_all_path} success", 'green'))
 
-        ## calibrate data
-        input_names_TransformerLayers = ["laptop", "phone", "state"]
+        ## calibrate data - 动态生成相机校准数据目录
+        input_names_TransformerLayers = camera_names + ["state"]
         input_cal_path = []
         for input_name in input_names_TransformerLayers:
             p = os.path.join(calbrate_data_path_BPU_ACTPolicy_TransformerLayers, input_name)
@@ -403,27 +421,28 @@ echo "End of build all."
         for i, batch in enumerate(dataloader):
             name = "%.10d.npy"%i
             batch = policy.normalize_inputs(batch)
-            laptop_input = batch['observation.images.laptop']   
-            phone_input = batch['observation.images.phone']   
+            
+            # 动态处理所有相机输入
+            camera_inputs = {}
+            for camera_name in camera_names:
+                camera_inputs[camera_name] = batch[f'observation.images.{camera_name}']
+            
             state_input = batch["observation.state"]
-            ## VisionEncoder
+            
+            ## VisionEncoder - 动态保存所有相机的校准数据
             if i%4 == 0:
-                p = os.path.join(calbrate_data_path_BPU_ACTPolicy_VisionEncoder, "laptop_" + name)
-                np.save(p, laptop_input.detach().cpu().numpy())
-                logging.info(colored(f"save to: {p}", 'light_blue'))
-                p = os.path.join(calbrate_data_path_BPU_ACTPolicy_VisionEncoder, "phone_" + name)
-                np.save(p, phone_input.detach().cpu().numpy())
-                logging.info(colored(f"save to: {p}", 'light_blue'))
-            ## TransformerLayers
-            laptop_vision_feature1 = m_VisionEncoder(laptop_input)
-            p = os.path.join(laptop_calbrate_data_path_BPU_ACTPolicy_TransformerLayers, name)
-            np.save(p, laptop_vision_feature1.detach().cpu().numpy())
-            logging.info(colored(f"save to: {p}", 'light_magenta'))
-
-            phone_vision_feature2 = m_VisionEncoder(phone_input)
-            p = os.path.join(phone_calbrate_data_path_BPU_ACTPolicy_TransformerLayers, name)
-            np.save(p, phone_vision_feature2.detach().cpu().numpy())
-            logging.info(colored(f"save to: {p}", 'light_magenta'))
+                for camera_name in camera_names:
+                    p = os.path.join(calbrate_data_path_BPU_ACTPolicy_VisionEncoder, f"{camera_name}_" + name)
+                    np.save(p, camera_inputs[camera_name].detach().cpu().numpy())
+                    logging.info(colored(f"save to: {p}", 'light_blue'))
+            
+            ## TransformerLayers - 动态处理所有相机的视觉特征
+            for camera_name in camera_names:
+                vision_feature = m_VisionEncoder(camera_inputs[camera_name])
+                camera_cal_path = os.path.join(calbrate_data_path_BPU_ACTPolicy_TransformerLayers, camera_name)
+                p = os.path.join(camera_cal_path, name)
+                np.save(p, vision_feature.detach().cpu().numpy())
+                logging.info(colored(f"save to: {p}", 'light_magenta'))
 
             p = os.path.join(state_calbrate_data_path_BPU_ACTPolicy_TransformerLayers, name)
             np.save(p, state_input.detach().cpu().numpy())
@@ -465,7 +484,23 @@ compiler_parameters:
             file.write(yaml)
         logging.info(colored(f"Export config yaml: {config_yaml_path_BPU_ACTPolicy_VisionEncoder} success", 'green'))
 
-        ### TransformerLayers
+        ### TransformerLayers - 动态生成相机配置 (Bayes版本)
+        # 构建输入名称字符串
+        input_name_list = ['states'] + [f'{camera_name}_features' for camera_name in camera_names]
+        input_name_str = ';'.join(input_name_list) + ';'
+        
+        # 构建输入类型字符串
+        input_type_list = ['featuremap'] * len(input_name_list)
+        input_type_str = ';'.join(input_type_list) + ';'
+        
+        # 构建校准数据路径字符串
+        cal_data_dirs = [os.path.join(calbrate_data_name_BPU_ACTPolicy_TransformerLayers, "state")]
+        cal_data_dirs.extend([os.path.join(calbrate_data_name_BPU_ACTPolicy_TransformerLayers, camera_name) for camera_name in camera_names])
+        cal_data_dir_str = ';'.join(cal_data_dirs) + ';'
+        
+        # 构建数据类型字符串
+        cal_data_type_str = ';'.join(['float32'] * len(input_name_list)) + ';'
+        
         yaml = f'''
 model_parameters:
   onnx_model: '{onnx_name_BPU_ACTPolicy_TransformerLayers}'
@@ -474,15 +509,15 @@ model_parameters:
   working_dir: 'bpu_model_output'
   output_model_file_prefix: '{BPU_TransformerLayers}'
 input_parameters:
-  input_name: "states;laptop_features;phone_features;"
-  input_type_rt: 'featuremap;featuremap;featuremap;'
+  input_name: "{input_name_str}"
+  input_type_rt: '{input_type_str}'
   input_layout_rt: 'NCHW;NCHW;NCHW;'
-  input_type_train: 'featuremap;featuremap;featuremap;'
+  input_type_train: '{input_type_str}'
   input_layout_train: 'NCHW;NCHW;NCHW;'
   norm_type: 'no_preprocess;no_preprocess;no_preprocess;'
 calibration_parameters:
-  cal_data_dir: '{os.path.join(calbrate_data_name_BPU_ACTPolicy_TransformerLayers, "state")};{os.path.join(calbrate_data_name_BPU_ACTPolicy_TransformerLayers, "laptop")};{os.path.join(calbrate_data_name_BPU_ACTPolicy_TransformerLayers, "phone")};'
-  cal_data_type: 'float32;float32;float32;'
+  cal_data_dir: '{cal_data_dir_str}'
+  cal_data_type: '{cal_data_type_str}'
   calibration_type: 'default'
   optimization: set_all_nodes_int16;set_Softmax_input_int16;set_Softmax_output_int16;
 compiler_parameters:
@@ -532,8 +567,8 @@ echo "End of build all."
             file.write(bash)
         logging.info(colored(f"Export bash scripts: {bash_build_all_path} success", 'green'))
 
-        ## calibrate data
-        input_names_TransformerLayers = ["laptop", "phone", "state"]
+        ## calibrate data - 动态生成相机校准数据目录
+        input_names_TransformerLayers = camera_names + ["state"]
         input_cal_path = []
         for input_name in input_names_TransformerLayers:
             p = os.path.join(calbrate_data_path_BPU_ACTPolicy_TransformerLayers, input_name)
@@ -544,27 +579,28 @@ echo "End of build all."
         for i, batch in enumerate(dataloader):
             name = "%.10d.nchw"%i
             batch = policy.normalize_inputs(batch)
-            laptop_input = batch['observation.images.laptop']   
-            phone_input = batch['observation.images.phone']   
+            
+            # 动态处理所有相机输入
+            camera_inputs = {}
+            for camera_name in camera_names:
+                camera_inputs[camera_name] = batch[f'observation.images.{camera_name}']
+            
             state_input = batch["observation.state"]
-            ## VisionEncoder
+            
+            ## VisionEncoder - 动态保存所有相机的校准数据 (Bayes格式)
             if i%4 == 0:
-                p = os.path.join(calbrate_data_path_BPU_ACTPolicy_VisionEncoder, "laptop_" + name)
-                laptop_input.detach().cpu().numpy().tofile(p)
-                logging.info(colored(f"save to: {p}", 'light_blue'))
-                p = os.path.join(calbrate_data_path_BPU_ACTPolicy_VisionEncoder, "phone_" + name)
-                phone_input.detach().cpu().numpy().tofile(p)
-                logging.info(colored(f"save to: {p}", 'light_blue'))
-            ## TransformerLayers
-            laptop_vision_feature1 = m_VisionEncoder(laptop_input)
-            p = os.path.join(laptop_calbrate_data_path_BPU_ACTPolicy_TransformerLayers, name)
-            laptop_vision_feature1.detach().cpu().numpy().tofile(p)
-            logging.info(colored(f"save to: {p}", 'light_magenta'))
-
-            phone_vision_feature2 = m_VisionEncoder(phone_input)
-            p = os.path.join(phone_calbrate_data_path_BPU_ACTPolicy_TransformerLayers, name)
-            phone_vision_feature2.detach().cpu().numpy().tofile(p)
-            logging.info(colored(f"save to: {p}", 'light_magenta'))
+                for camera_name in camera_names:
+                    p = os.path.join(calbrate_data_path_BPU_ACTPolicy_VisionEncoder, f"{camera_name}_" + name)
+                    camera_inputs[camera_name].detach().cpu().numpy().tofile(p)
+                    logging.info(colored(f"save to: {p}", 'light_blue'))
+            
+            ## TransformerLayers - 动态处理所有相机的视觉特征 (Bayes格式)
+            for camera_name in camera_names:
+                vision_feature = m_VisionEncoder(camera_inputs[camera_name])
+                camera_cal_path = os.path.join(calbrate_data_path_BPU_ACTPolicy_TransformerLayers, camera_name)
+                p = os.path.join(camera_cal_path, name)
+                vision_feature.detach().cpu().numpy().tofile(p)
+                logging.info(colored(f"save to: {p}", 'light_magenta'))
 
             p = os.path.join(state_calbrate_data_path_BPU_ACTPolicy_TransformerLayers, name)
             state_input.detach().cpu().numpy().tofile(p)
@@ -619,34 +655,26 @@ class BPU_ACTPolicy_VisionEncoder(nn.Module):
         return cam_features
 
 class BPU_ACTPolicy_TransformerLayers(nn.Module):
-    def __init__(self, act_policy):
+    def __init__(self, act_policy, camera_names):
         super().__init__()
         self.model = deepcopy(act_policy.model)
+        self.camera_names = camera_names
 
-    def forward(self, states, vision_feature1, vision_feature2):
+    def forward(self, states, *vision_features):
         latent_sample = torch.zeros([1, self.model.config.latent_dim], dtype=torch.float32)
 
         encoder_in_tokens = [self.model.encoder_latent_input_proj(latent_sample)]
-        # encoder_in_pos_embed = list(self.model.encoder_1d_feature_pos_embed.weight.unsqueeze(1))
         encoder_in_pos_embed = self.model.encoder_1d_feature_pos_embed.weight.unsqueeze(1).unbind(dim=0)
         encoder_in_tokens.append(self.model.encoder_robot_state_input_proj(states))
 
         all_cam_features = []
         all_cam_pos_embeds = []
 
-        vision_features = [vision_feature1, vision_feature2]
+        # 动态处理所有相机的视觉特征
         for vision_feature in vision_features:
             cam_pos_embed = self.model.encoder_cam_feat_pos_embed(vision_feature)
             all_cam_features.append(vision_feature)
-            all_cam_pos_embeds.append(cam_pos_embed)   
-
-        # cam_pos_embed = self.model.encoder_cam_feat_pos_embed(vision_feature1)
-        # all_cam_features.append(vision_feature1)
-        # all_cam_pos_embeds.append(cam_pos_embed)
-
-        # cam_pos_embed = self.model.encoder_cam_feat_pos_embed(vision_feature2)
-        # all_cam_features.append(vision_feature2)
-        # all_cam_pos_embeds.append(cam_pos_embed)
+            all_cam_pos_embeds.append(cam_pos_embed)
 
 
         tokens = []
