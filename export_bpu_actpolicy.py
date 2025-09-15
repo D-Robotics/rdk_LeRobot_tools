@@ -354,7 +354,7 @@ model_parameters:
 input_parameters:
   input_name: "{input_name_str}"
   input_type_rt: '{input_type_str}'
-  input_layout_rt: 'NCHW;NCHW;NCHW;'
+  input_layout_rt: '{nchw_str}'
   input_type_train: '{input_type_str}'
   input_layout_train: '{nchw_str}'
   norm_type: '{norm_type_str}'
