@@ -341,6 +341,8 @@ compiler_parameters:
         
         # 构建数据类型字符串
         cal_data_type_str = ';'.join(['float32'] * len(input_name_list)) + ';'
+        nchw_str = 'NCHW' * len(input_name_list))
+        norm_type_str = 'no_preprocess;' * len(input_name_list)
         
         yaml = f'''
 model_parameters:
@@ -354,8 +356,8 @@ input_parameters:
   input_type_rt: '{input_type_str}'
   input_layout_rt: 'NCHW;NCHW;NCHW;'
   input_type_train: '{input_type_str}'
-  input_layout_train: 'NCHW;NCHW;NCHW;'
-  norm_type: 'no_preprocess;no_preprocess;no_preprocess;'
+  input_layout_train: '{nchw_str}'
+  norm_type: '{norm_type_str}'
 calibration_parameters:
   cal_data_dir: '{cal_data_dir_str}'
   cal_data_type: '{cal_data_type_str}'
