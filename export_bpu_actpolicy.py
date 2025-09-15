@@ -335,8 +335,8 @@ compiler_parameters:
         input_type_str = ';'.join(input_type_list) + ';'
         
         # 构建校准数据路径字符串
-        cal_data_dirs = [os.path.join(calbrate_data_name_BPU_ACTPolicy_TransformerLayers, "state")]
-        cal_data_dirs.extend([os.path.join(calbrate_data_name_BPU_ACTPolicy_TransformerLayers, camera_name) for camera_name in camera_names])
+        cal_data_dirs = [os.path.join(calbrate_data_name_BPU_ACTPolicy_TransformerLayers, "state").replace("\", "/")]
+        cal_data_dirs.extend([os.path.join(calbrate_data_name_BPU_ACTPolicy_TransformerLayers, camera_name).replace("\", "/") for camera_name in camera_names])
         cal_data_dir_str = ';'.join(cal_data_dirs) + ';'
         
         # 构建数据类型字符串
