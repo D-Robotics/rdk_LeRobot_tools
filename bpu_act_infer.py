@@ -32,8 +32,8 @@ from collections import deque
 from lerobot.cameras.opencv.configuration_opencv import OpenCVCameraConfig
 from lerobot.datasets.lerobot_dataset import LeRobotDataset
 from lerobot.datasets.utils import hw_to_dataset_features
-from lerobot.robots.so100_follower.config_so100_follower import SO100FollowerConfig
-from lerobot.robots.so100_follower.so100_follower import SO100Follower
+from lerobot.robots.so101_follower.config_so101_follower import SO101FollowerConfig
+from lerobot.robots.so101_follower.so101_follower import SO101Follower
 from lerobot.utils.control_utils import init_keyboard_listener
 from lerobot.utils.utils import log_say
 from lerobot.utils.visualization_utils import _init_rerun
@@ -107,12 +107,12 @@ def main():
     for camera_name, config in camera_config.items():
         print(f"Camera '{camera_name}' -> index/path: {config.index_or_path}")
     
-    robot_config = SO100FollowerConfig(
+    robot_config = SO101FollowerConfig(
         port="/dev/ttyACM0", id="follower_arm", cameras=camera_config
     )
 
     # Initialize the robot
-    robot = SO100Follower(robot_config)
+    robot = SO101Follower(robot_config)
 
     # Initialize the BPU policy
     policy = RDK_ACTPolicy_Dynamic(opt.bpu_act_path, opt.n_action_steps, camera_names)

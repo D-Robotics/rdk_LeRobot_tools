@@ -1,6 +1,6 @@
 #!/user/bin/env python
 
-# Copyright (c) 2025，WuChao D-Robotics.
+# Copyright (c) 2025，WuChao&&MaChao D-Robotics.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,17 +20,17 @@
 import logging
 import os
 import shutil
+import sys
 import cv2
 import numpy as np
 import torch
 import torch.nn as nn
 import argparse
-import logging
 import onnx
+import yaml
 from copy import deepcopy
 from termcolor import colored
 from onnxsim import simplify
-from termcolor import colored
 from pprint import pformat
 
 from lerobot.policies.act.modeling_act import ACTPolicy
@@ -48,29 +48,156 @@ TAG = "TAG"
 # REPOSITORY = "openexplorer/ai_toolchain_ubuntu_20_x5_gpu"
 # TAG = "v1.2.8-py310"
 
+def load_config_and_inject_args():
+    """从配置文件加载参数并注入到sys.argv中，同时返回BPU参数"""
+    # 先检查是否有--config参数
+    temp_parser = argparse.ArgumentParser(add_help=False)
+    temp_parser.add_argument('--config', type=str, help='Path to BPU export config YAML file')
+    temp_args, _ = temp_parser.parse_known_args()
+
+    if temp_args.config:
+        logging.info(f"Loading config from: {temp_args.config}")
+        with open(temp_args.config, 'r', encoding='utf-8') as f:
+            config_dict = yaml.safe_load(f)
+
+        # 将配置文件中的LeRobot参数转换为命令行参数格式
+        injected_args = []
+
+        # 处理dataset参数
+        if 'dataset' in config_dict:
+            dataset_cfg = config_dict['dataset']
+            if 'repo_id' in dataset_cfg:
+                injected_args.extend(['--dataset.repo_id', str(dataset_cfg['repo_id'])])
+            if 'root' in dataset_cfg:
+                injected_args.extend(['--dataset.root', str(dataset_cfg['root'])])
+
+        # 处理policy参数
+        if 'policy' in config_dict:
+            policy_cfg = config_dict['policy']
+            if 'type' in policy_cfg:
+                injected_args.extend(['--policy.type', str(policy_cfg['type'])])
+            if 'device' in policy_cfg:
+                injected_args.extend(['--policy.device', str(policy_cfg['device'])])
+            if 'repo_id' in policy_cfg:
+                injected_args.extend(['--policy.repo_id', str(policy_cfg['repo_id'])])
+
+        # 处理wandb参数
+        if 'wandb' in config_dict:
+            wandb_cfg = config_dict['wandb']
+            if 'enable' in wandb_cfg:
+                injected_args.extend(['--wandb.enable', str(wandb_cfg['enable']).lower()])
+
+        # 将注入的参数添加到sys.argv中（但不重复已存在的参数）
+        existing_args = set()
+        for arg in sys.argv[1:]:
+            if arg.startswith('--'):
+                existing_args.add(arg.split('=')[0])
+
+        for i in range(0, len(injected_args), 2):
+            if injected_args[i] not in existing_args:
+                sys.argv.extend([injected_args[i], injected_args[i+1]])
+
+        # 移除所有BPU相关参数（包括--config），避免draccus解析时报错
+        bpu_params = ['config', 'act-path', 'export-path', 'cal-num', 'onnx-sim', 'type', 'combine-jobs']
+
+        # 过滤掉BPU参数及其值
+        filtered_argv = [sys.argv[0]]  # 保留脚本名称
+        i = 1
+        while i < len(sys.argv):
+            arg = sys.argv[i]
+            # 检查是否是BPU参数
+            is_bpu_param = False
+            for param in bpu_params:
+                if arg == f'--{param}' or arg.startswith(f'--{param}='):
+                    is_bpu_param = True
+                    # 如果是 --param value 格式，跳过下一个参数（值）
+                    if '=' not in arg and i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+                        i += 1  # 跳过值
+                    break
+
+            if not is_bpu_param:
+                filtered_argv.append(arg)
+
+            i += 1
+
+        sys.argv = filtered_argv
+
+        logging.info(f"Injected LeRobot parameters from config file")
+        logging.info(f"Cleaned sys.argv for draccus: {sys.argv}")
+        return config_dict
+
+    return None
+
+# 全局变量存储配置文件内容
+_global_config = None
+
 @parser.wrap()
 def main(cfg: TrainPipelineConfig):
     # LeRobot的参数列表
-    cfg.validate()
+    # 跳过validate()，配置不是用于训练，而是用于导出
+    # cfg.validate()
     logging.info(pformat(cfg.to_dict()))
-    # 这里只是为了美观, 不支持从外传参, 需要在文件内修改
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--act-path', type=str, default='outputs/train/act_so100_test/checkpoints/001000/pretrained_model', help='Path to LeRobot ACT Policy model.')
-    """ 
-    # example: --act-path pretrained_model
-    ./pretrained_model/
-    ├── config.json
-    ├── model.safetensors
-    └── train_config.json
-    """
-    parser.add_argument('--export-path', type=str, default='marcelo_test1', help='Path to save LeRobot ACT Policy model.') 
-    parser.add_argument('--cal-num', type=int, default=400, help='Num of images to generate')
-    parser.add_argument('--onnx-sim', type=bool, default=True, help='Simplify onnx or not.') 
-    parser.add_argument('--type', type=str, default="nash-e", help='Optional: nash-e, nash-m, nash-p, bayes-e, bayes') 
-    parser.add_argument('--combine-jobs', type=int, default=6, help='combie jobs for OpenExplore.')
 
-    opt = parser.parse_args([])
-    logging.info(f"opt: {opt}")
+    # BPU导出参数 - 从全局配置或命令行读取
+    global _global_config
+
+    # 默认值
+    class BPUOptions:
+        act_path = 'outputs/train/act_so100_test/checkpoints/001000/pretrained_model'
+        export_path = 'bpu_export_output'
+        cal_num = 400
+        onnx_sim = True
+        type = "nash-e"
+        combine_jobs = 6
+
+    opt = BPUOptions()
+
+    # 如果有全局配置文件，从配置文件加载BPU参数
+    if _global_config:
+        opt.act_path = _global_config.get('act_path', opt.act_path)
+        opt.export_path = _global_config.get('export_path', opt.export_path)
+        opt.cal_num = _global_config.get('cal_num', opt.cal_num)
+        opt.onnx_sim = _global_config.get('onnx_sim', opt.onnx_sim)
+        opt.type = _global_config.get('type', opt.type)
+        opt.combine_jobs = _global_config.get('combine_jobs', opt.combine_jobs)
+        logging.info("BPU parameters loaded from config file")
+
+    # 命令行参数可以覆盖配置文件
+    bpu_parser = argparse.ArgumentParser()
+    bpu_parser.add_argument('--config', type=str, help='Path to BPU export config YAML file')
+    bpu_parser.add_argument('--act-path', type=str, help='Path to LeRobot ACT Policy model.')
+    bpu_parser.add_argument('--export-path', type=str, help='Path to save LeRobot ACT Policy model.')
+    bpu_parser.add_argument('--cal-num', type=int, help='Num of images to generate')
+    bpu_parser.add_argument('--onnx-sim', type=bool, help='Simplify onnx or not.')
+    bpu_parser.add_argument('--type', type=str, help='Optional: nash-e, nash-m, nash-p, bayes-e, bayes')
+    bpu_parser.add_argument('--combine-jobs', type=int, help='combie jobs for OpenExplore.')
+
+    cli_opt, _ = bpu_parser.parse_known_args()
+
+    # 命令行参数覆盖配置文件参数
+    if cli_opt.act_path:
+        opt.act_path = cli_opt.act_path
+    if cli_opt.export_path:
+        opt.export_path = cli_opt.export_path
+    if cli_opt.cal_num is not None:
+        opt.cal_num = cli_opt.cal_num
+    if cli_opt.onnx_sim is not None:
+        opt.onnx_sim = cli_opt.onnx_sim
+    if cli_opt.type:
+        opt.type = cli_opt.type
+    if cli_opt.combine_jobs is not None:
+        opt.combine_jobs = cli_opt.combine_jobs
+
+    logging.info("="*80)
+    logging.info(colored("BPU Export Configuration:", 'light_cyan'))
+    logging.info(f"  ACT Model Path:      {opt.act_path}")
+    logging.info(f"  Export Path:         {opt.export_path}")
+    logging.info(f"  Calibration Samples: {opt.cal_num}")
+    logging.info(f"  ONNX Simplify:       {opt.onnx_sim}")
+    logging.info(f"  BPU Type:            {opt.type}")
+    logging.info(f"  Compiler Jobs:       {opt.combine_jobs}")
+    logging.info(f"  Dataset Root:        {cfg.dataset.root}")
+    logging.info("="*80)
     # 所有的导出会基于opt.export_path这个文件夹
     ## 如果存在这个文件夹则删除
     if os.path.exists(opt.export_path): 
@@ -335,13 +462,13 @@ compiler_parameters:
         input_type_str = ';'.join(input_type_list) + ';'
         
         # 构建校准数据路径字符串
-        cal_data_dirs = [os.path.join(calbrate_data_name_BPU_ACTPolicy_TransformerLayers, "state").replace("\", "/")]
-        cal_data_dirs.extend([os.path.join(calbrate_data_name_BPU_ACTPolicy_TransformerLayers, camera_name).replace("\", "/") for camera_name in camera_names])
+        cal_data_dirs = [os.path.join(calbrate_data_name_BPU_ACTPolicy_TransformerLayers, "state")]
+        cal_data_dirs.extend([os.path.join(calbrate_data_name_BPU_ACTPolicy_TransformerLayers, camera_name) for camera_name in camera_names])
         cal_data_dir_str = ';'.join(cal_data_dirs) + ';'
         
         # 构建数据类型字符串
         cal_data_type_str = ';'.join(['float32'] * len(input_name_list)) + ';'
-        nchw_str = 'NCHW' * len(input_name_list))
+        nchw_str = 'NCHW;' * len(input_name_list)
         norm_type_str = 'no_preprocess;' * len(input_name_list)
         
         yaml = f'''
@@ -743,4 +870,6 @@ def onnx_sim(onnx_path, onnx_sim):
 
 if __name__ == "__main__":
     init_logging()
+    # 在调用main之前，先加载配置文件并注入LeRobot参数到sys.argv
+    _global_config = load_config_and_inject_args()
     main()

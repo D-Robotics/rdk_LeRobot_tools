@@ -1,0 +1,37 @@
+# BPU导出配置文件
+# 使用方法: python rdk_LeRobot_tools/export_bpu_actpolicy.py --config rdk_LeRobot_tools/bpu_export_config.yaml
+
+# ========== LeRobot参数 ==========
+# 数据集配置
+dataset:
+  repo_id: "dummy/dataset"  # 占位符
+  root: "/home/marcelo/datasets/so100_0417_test1"  # 数据集路径（必需修改）
+
+# 策略配置
+policy:
+  type: "act"
+  device: "cpu"
+  repo_id: "dummy/policy"  # 占位符
+
+# WandB配置
+wandb:
+  enable: false
+
+# ========== BPU导出参数 ==========
+# ACT模型路径（必需修改）
+act_path: "/home/marcelo/lerobot/outputs/pretrained_model"
+
+# BPU导出输出目录
+export_path: "bpu_export_output"
+
+# 校准数据样本数量
+cal_num: 400
+
+# 是否简化ONNX模型
+onnx_sim: true
+
+# BPU芯片类型: nash-e, nash-m, nash-p, bayes-e, bayes
+type: "nash-e"
+
+# 编译器并行任务数
+combine_jobs: 6
