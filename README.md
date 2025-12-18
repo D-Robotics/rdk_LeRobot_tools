@@ -1,134 +1,145 @@
 # RDK LeRobot Tools
 
-本仓库提供了一套工具，用于将基于 [LeRobot](https://github.com/huggingface/lerobot) 框架训练的 ACT 策略模型导出并部署到地平线 RDK 系列开发板（如 RDK X5, RDK X5E 等）上，利用 BPU 进行高效推理。
+**This is the STABLE version, primarily adapted for older versions of LeRobot (compatible with v2.1 datasets). For newer versions of LeRobot, please switch to the corresponding branch.**
 
-## 目录结构
+**Note: This tool has currently only verified the deployment effect of ACT models on RDK S100. The effects on other hardware platforms or model architectures are not guaranteed.**
 
-*   `damo/`: 适配 DAMO 开发者矩阵-乐云具身智能开发平台的工具包。
-*   `export_bpu_actpolicy.py`: **模型导出脚本**（在开发机/训练服务器上运行）。用于将 PyTorch 权重转换为 ONNX 并生成 BPU 编译所需的配置文件和脚本。
-*   `bpu_export_config.yaml`: 模型导出配置文件。
-*   `bpu_control_robot.py`: **板端部署脚本**（在 RDK 板端运行）。加载编译好的 BPU 模型并控制机器人。
+This repository provides a set of tools to export ACT policy models trained based on the [LeRobot](https://github.com/D-Robotics/lerobot) framework and deploy them to D-Robotics RDK S100, utilizing the BPU for efficient inference.
 
-## 1. 环境准备
+For the full workflow documentation, see: 👉 *[Full Workflow Guide](WORKFLOW_GUIDE_EN.md)*
 
-### 1.1 开发机 (用于模型转换)
+## Directory Structure
 
-需安装 `lerobot` 及其依赖，并补充安装以下 Python 包（用于 ONNX 导出和简化）：
+*   `damo/`: Toolkit adapted for the DAMO Developer Matrix - LeYun Embodied Intelligence Development Platform.
+*   `export_bpu_actpolicy.py`: **Model Export Script** (runs on the development machine/training server). Used to convert PyTorch weights to ONNX and generate configuration files and scripts required for BPU compilation.
+*   `bpu_export_config.yaml`: Model export configuration file.
+*   `bpu_control_robot.py`: **On-Board Deployment Script** (runs on the RDK board). Loads the compiled BPU model and controls the robot.
+
+## 1. Environment Preparation
+
+### 1.1 Development Machine (For Model Conversion)
+
+It is **strictly recommended** to use the LeRobot repository provided by D-Robotics to set up the development environment to ensure the best compatibility:
+👉 **https://github.com/D-Robotics/lerobot**
+
+This version is compatible with v2.1 datasets. The export tools in this repository will work as long as they can load historical versions of v2.1 datasets.
+
+**Special Note:** Newer versions of LeRobot may have compatibility issues with older code, leading to errors. The D-Robotics fork of the LeRobot repository has already locked the `datasets` library version. If you clone other versions of the LeRobot repository and encounter compatibility problems, you might need to manually downgrade the `datasets` library to `datasets==2.19.0` to avoid compatibility issues.
+
+Install the following Python packages for ONNX export and processing:
 
 ```bash
-pip install onnx onnxsim termcolor
+pip install onnx onnxsim termcolor tqdm
 ```
 
-*注意：模型编译（ONNX -> HBM）通常需要在地平线提供的 Docker 工具链环境中进行。*
+*Note: Model compilation (ONNX -> HBM) needs to be performed in the Docker toolchain environment (OpenExplorer) provided by D-Robotics.*
 
-### 1.2 RDK 板端 (用于模型部署)
+### 1.2 RDK Board (For Model Deployment)
 
-1.  **安装 LeRobot**:
-    为了保证最佳兼容性，必须使用以下经过验证的 commit 版本：
+The on-board runtime environment has high requirements for stability. Please be sure to Clone the specified version of the `D-Robotics/lerobot` repository:
 
+1.  **Install LeRobot (D-Robotics Fork Version)**:
     ```bash
-    git clone https://github.com/huggingface/lerobot.git
+    git clone https://github.com/D-Robotics/lerobot.git
     cd lerobot
-    git checkout 8cfab3882480bdde38e42d93a9752de5ed42cae2
     pip install -e .
+    # The D-Robotics fork version has locked the datasets dependency, so no manual action is needed.
+    # If you are using other LeRobot repository versions and encounter compatibility issues, you might need to manually install datasets==2.19.0.
     ```
 
-2.  **安装 BPU 推理库**:
-
+2.  **Install BPU Inference Library**:
     ```bash
     pip install hbm-runtime
     ```
 
-## 2. 模型导出与编译 (在开发机上执行)
+## 2. Model Export and Compilation (Executed on Development Machine)
 
-此过程分为两步：首先导出 ONNX 和配置，然后使用地平线工具链编译为 BPU 模型。
+This process is divided into two steps: first exporting ONNX and configuration, and then using the Horizon toolchain to compile into a BPU model.
 
-### 第一步：导出 ONNX 及配置
+### Step 1: Export ONNX and Configuration
 
-1.  **修改配置文件**:
-    编辑 `bpu_export_config.yaml`，根据实际情况修改以下关键字段：
-    *   `dataset.root`: 训练时使用的数据集根目录。
-    *   `act_path`: 训练好的 ACT 模型检查点路径 (包含 `config.json` 和 `model.safetensors`)。
-    *   `type`: BPU 平台类型 (例如 `nash-e` 对应 RDK X5)。
+1.  **Modify Configuration File**:
+    Edit `bpu_export_config.yaml` and modify the following key fields according to the actual situation:
+    *   `dataset.root`: The root directory of the dataset used during training.
+    *   `act_path`: The path to the trained ACT model checkpoint (containing `config.json` and `model.safetensors`).
+    *   `type`: BPU platform type. The script will automatically adjust compilation parameters based on this type.
+        *   `nash-e` / `nash-m` / `nash-p`: Suitable for Nash architectures such as **RDK S100**.
+        *   `bayes` / `bayes-e`: Suitable for Bayes architectures such as **RDK X5**.
 
-    ```yaml
-    dataset:
-      root: "/path/to/your/dataset"
-    
-    act_path: "/path/to/your/pretrained_model"
-    
-    type: "nash-e" # 可选: nash-e, nash-m, nash-p, bayes-e, bayes
-    ```
-
-2.  **运行导出脚本**:
-
+2.  **Run Export Script**:
     ```bash
     python export_bpu_actpolicy.py --config bpu_export_config.yaml
     ```
+    After successful execution, the ONNX model, calibration data, and compilation script (`build_all.sh`) will be generated under `bpu_export_output` (or the directory specified in the configuration).
 
-    运行成功后，会在 `bpu_export_output` (或配置指定的目录) 下生成 ONNX 模型、校准数据和编译脚本 (`build_all.sh`)。
+    **Important Note:** For newer versions of LeRobot (v2.1), to avoid missing key errors (such as `policy.type`) during export, please make sure to uncomment the corresponding `policy` and `dataset` sections in `bpu_export_config.yaml`. Please refer to the instructions in the `bpu_export_config.yaml` template file for details.
 
-### 第二步：编译 BPU 模型
+### Step 2: Compile BPU Model
 
-进入地平线工具链 Docker 环境（或确保已安装 `hb_compile`/`hb_mapper` 工具），运行上一步生成的编译脚本：
+Enter the toolchain Docker environment and run the compilation script generated in the previous step:
 
 ```bash
 cd bpu_export_output
 bash build_all.sh
 ```
 
-编译完成后，`bpu_export_output` 目录下会生成一个 **`bpu_output`** 文件夹。这个文件夹包含了最终部署所需的所有文件（`.hbm` 模型文件和 `.npy` 归一化参数）。
+After compilation is complete, a **`bpu_output`** folder will be generated in the `bpu_export_output` directory. This folder contains:
+*   `.hbm` / `.bin`: The compiled BPU model files (executable on the BPU).
+*   `.npy`: Normalization parameters required for runtime.
+*   `new_actions.npy`: Model inference results before conversion (used for precision verification).
 
-**请将 `bpu_output` 文件夹拷贝到 RDK 板端。**
+**Please copy the `bpu_output` folder to the RDK board.**
 
-## 3. 板端推理 (在 RDK 上执行)
 
-1.  确保 `bpu_output` 文件夹已传输到 RDK 板端。
-2.  连接机器人（默认配置为 `so101`，如需更改请修改脚本）。
-3.  运行控制脚本：
+```bpu_output/
+    |-- BPU_ACTPolicy_TransformerLayers.hbm
+    |-- BPU_ACTPolicy_VisionEncoder.hbm
+    |-- action_mean.npy
+    |-- action_mean_unnormalize.npy
+    |-- action_std.npy
+    |-- action_std_unnormalize.npy
+    |-- camera1_mean.npy    # camera names are auto-detected
+    |-- camera1_std.npy
+    |-- camera2_mean.npy
+    `-- camera2_std.npy
+```
+
+## 3. On-Board Inference (Executed on RDK)
+
+The core of on-board inference is using the **`bpu_control_robot.py`** script.
+
+### Prerequisites
+1.  Installed LeRobot from the `D-Robotics/lerobot` repository and `hbm_runtime`.
+2.  Transferred the **`bpu_output`** folder (containing the quantized `.hbm` model and calibration parameters) to the board.
+3.  **Hardware Configuration**: Please refer to the official data collection and teleoperation steps to complete the `config` file configuration, ensuring that the **robot arm port number**, **camera port number**, and **calibration file** are configured correctly.
+
+### Run Steps
+
+1.  Connect the robot (default configuration is `so101`).
+2.  Run the control script, specifying the model path:
 
     ```bash
-    # 假设 bpu_output 在当前目录下
+    # Assuming bpu_output is in the current directory
     python bpu_control_robot.py --bpu-act-path ./bpu_output
     ```
 
-### 常见参数
+### Common Parameters
 
-*   `--bpu-act-path`: BPU 模型文件夹路径 (包含 `.hbm` 和 `.npy` 文件)。
-*   `--fps`: 控制循环频率 (默认 30Hz)。
-*   `--inference-time`: 自动运行的持续时间 (秒)。
+*   `--bpu-act-path`: BPU model folder path (must contain `.hbm` and `.npy` files).
+*   `--fps`: Control loop frequency (default 30Hz).
+*   `--inference-time`: Duration of automatic operation (seconds).
 
-## 4. DAMO 平台模型适配
+## 4. DAMO Platform Model Adaptation
 
-如果您使用的是 **DAMO 开发者矩阵-乐云具身智能开发平台** 训练的模型，在进行 BPU 模型导出前，**必须** 对数据集进行格式适配。
+If you are using data collected and models trained on the **DAMO Developer Matrix - LeYun Embodied Intelligence Development Platform**, you **must** adapt the dataset format before exporting the BPU model.
 
-这是因为 DAMO 平台产生的数据集字段名称（如 `action`, `observation.state`）与 LeRobot 标准格式不完全一致（需要转换为 `action.joint`, `observation.state.joint`），直接使用会导致量化失败。
+**Operation Steps:**
 
-**操作步骤：**
+1.  **Backup Data**: This operation will directly modify the source files, so please be sure to backup your dataset folder first.
+2.  **Edit Script**: Open `damo/replace.py` and modify `folder_path` to your dataset path.
+3.  **Run Conversion**: `python damo/replace.py`
 
-1.  **备份数据**：该操作会直接修改源文件，请务必先备份您的数据集文件夹。
-2.  **编辑脚本**：
-    打开 `damo/replace.py` 文件，修改底部的 `folder_path` 变量为您下载的数据集路径：
+## Notes
 
-    ```python
-    if __name__ == "__main__":
-        # --------------------------
-        # 配置区域：修改这里的路径
-        # --------------------------
-        folder_path = "/path/to/your/damo/dataset"  # <--- 修改这里
-        
-        process_folder(folder_path)
-    ```
-
-3.  **运行转换**：
-
-    ```bash
-    python damo/replace.py
-    ```
-
-    脚本会自动递归扫描目录下的 `.parquet`, `.json`, `.jsonl` 文件并完成关键字替换。
-
-## 注意事项
-
-*   **数据兼容性**: 如果使用 DAMO 平台训练的数据，请确保数据格式已被正确适配（如有必要使用 `damo/` 目录下的工具）。
-*   **机器人配置**: `bpu_control_robot.py` 默认连接 `so101` 机器人。如果您使用的是其他类型的机器人，请在运行前修改代码中的 `make_robot("so101")` 为您的机器人型号。
+*   **Model Compatibility**: On-board execution must use `.hbm` / `.bin` models quantized and compiled by the OE toolchain, and cannot directly run ONNX or PyTorch models.
+*   **Robot Configuration**: `bpu_control_robot.py` connects to the `so101` robot by default. If you need to change it, please modify `make_robot("so101")` in the code.
