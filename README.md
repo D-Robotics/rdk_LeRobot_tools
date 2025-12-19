@@ -22,7 +22,21 @@ For the full workflow documentation, see: 👉 *[Full Workflow Guide](WORKFLOW_G
 It is **strictly recommended** to use the LeRobot repository provided by D-Robotics to set up the development environment to ensure the best compatibility:
 👉 **https://github.com/D-Robotics/lerobot**
 
+```bash
+    git clone https://github.com/D-Robotics/lerobot.git
+    cd lerobot
+    pip install -e ".[feetech]"
+```
+
 This version is compatible with v2.1 datasets. The export tools in this repository will work as long as they can load historical versions of v2.1 datasets.
+
+Or clone the official repository and switch to the corresponding older-version branch:
+```bash
+    git clone https://github.com/huggingface/lerobot.git
+    cd lerobot
+    git checkout 8cfab3882480bdde38e42d93a9752de5ed42cae2  # 切换到 v2.1 版本对应的 commit
+    pip install -e ".[feetech]"
+```
 
 **Special Note:** Newer versions of LeRobot may have compatibility issues with older code, leading to errors. The D-Robotics fork of the LeRobot repository has already locked the `datasets` library version. If you clone other versions of the LeRobot repository and encounter compatibility problems, you might need to manually downgrade the `datasets` library to `datasets==2.19.0` to avoid compatibility issues.
 

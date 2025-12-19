@@ -21,10 +21,22 @@
 
 **严格推荐**使用 D-Robotics 提供的 LeRobot 仓库搭建开发环境，以确保最佳兼容性：
 👉 **https://github.com/D-Robotics/lerobot**
-
+```bash
+    git clone https://github.com/D-Robotics/lerobot.git
+    cd lerobot
+    pip install -e ".[feetech]"
+```
 此版本兼容 v2.1 数据集，本仓库的导出工具只要能加载 v2.1 数据集的历史版本均可工作。
 
-    **特别注意：** LeRobot 较新版本对旧代码可能存在兼容性问题，导致报错。D-Robotics fork 的 LeRobot 仓库已将 `datasets` 库版本锁定。如果您是直接 Clone 官方 LeRobot 仓库并切换到旧版，可能需要手动将 `datasets` 库降级到 `datasets==2.19.0` 以避免兼容性问题。
+或者clone官方仓库后切换到对应的旧版本分支：
+```bash
+    git clone https://github.com/huggingface/lerobot.git
+    cd lerobot
+    git checkout 8cfab3882480bdde38e42d93a9752de5ed42cae2  # 切换到 v2.1 版本对应的 commit
+    pip install -e ".[feetech]"
+```
+
+**特别注意：** LeRobot 较新版本对旧代码可能存在兼容性问题，导致报错。D-Robotics fork 的 LeRobot 仓库已将 `datasets` 库版本锁定。如果您是直接 Clone 官方 LeRobot 仓库并切换到旧版，可能需要手动将 `datasets` 库降级到 `datasets==2.19.0` 以避免兼容性问题。
 
 需安装以下 Python 包用于 ONNX 导出和处理：
 
@@ -42,7 +54,7 @@ pip install onnx onnxsim termcolor tqdm
     ```bash
     git clone https://github.com/D-Robotics/lerobot.git
     cd lerobot
-    pip install -e .
+    pip install -e ".[feetech]"
     # D-Robotics fork 版本已锁定 datasets 依赖，无需手动操作。
     # 若您使用其他 LeRobot 仓库版本并遇到兼容性问题，可能需手动安装 datasets==2.19.0
     ```

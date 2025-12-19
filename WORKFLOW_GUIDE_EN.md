@@ -51,7 +51,7 @@ git clone https://github.com/D-Robotics/lerobot.git
 cd lerobot
 
 # 2. Install dependencies
-pip install ".[feetech]"
+pip install -e ".[feetech]"
 pip install onnx onnxsim termcolor tqdm
 ```
 
@@ -63,7 +63,7 @@ SSH into RDK S100/S100P:
 # 1. Clone D-Robotics LeRobot as well
 git clone https://github.com/D-Robotics/lerobot.git
 cd lerobot
-pip install -e .
+pip install -e ".[feetech]"
 
 # 2. Install BPU runtime (required for inference, recommended to install)
 pip install hbm-runtime
