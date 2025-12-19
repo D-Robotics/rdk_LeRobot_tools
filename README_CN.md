@@ -1,3 +1,4 @@
+[English](./README.md) | 简体中文
 # RDK LeRobot Tools
 
 **此版本为 STABLE (稳定) 版本，主要适配较旧版本 LeRobot（兼容 v2.1 数据集）。新版本 LeRobot 请切换到对应的分支。**

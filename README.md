@@ -1,3 +1,4 @@
+English| [简体中文](./README_CN.md)
 # RDK LeRobot Tools
 
 **This is the STABLE version, primarily adapted for older versions of LeRobot (compatible with v2.1 datasets). For newer versions of LeRobot, please switch to the corresponding branch.**
