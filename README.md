@@ -7,7 +7,7 @@ English| [简体中文](./README_CN.md)
 
 This repository provides a set of tools to export ACT policy models trained based on the [LeRobot](https://github.com/D-Robotics/lerobot) framework and deploy them to D-Robotics RDK S100, utilizing the BPU for efficient inference.
 
-For the full workflow documentation, see: 👉 *[Full Workflow Guide](WORKFLOW_GUIDE_EN.md)*
+For the full workflow documentation, see: 👉 *[Full Workflow Guide](./doc/WORKFLOW_GUIDE_EN.md)*
 
 ## Directory Structure
 
@@ -26,6 +26,7 @@ It is **strictly recommended** to use the LeRobot repository provided by D-Robot
 ```bash
     git clone https://github.com/D-Robotics/lerobot.git
     cd lerobot
+    git clone https://github.com/D-Robotics/rdk_LeRobot_tools.git
     pip install -e ".[feetech]"
 ```
 
@@ -36,6 +37,7 @@ Or clone the official repository and switch to the corresponding older-version b
     git clone https://github.com/huggingface/lerobot.git
     cd lerobot
     git checkout 8cfab3882480bdde38e42d93a9752de5ed42cae2  # 切换到 v2.1 版本对应的 commit
+    git clone https://github.com/D-Robotics/rdk_LeRobot_tools.git
     pip install -e ".[feetech]"
 ```
 

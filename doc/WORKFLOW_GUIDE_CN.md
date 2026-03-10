@@ -1,3 +1,4 @@
+[English](./WORKFLOW_GUIDE_EN.md) | 简体中文
 # LeRobot + 地瓜机器人 RDK 全流程落地指南
 
 本文档基于 [D-Robotics/lerobot](https://github.com/D-Robotics/lerobot) 仓库及本工具链，提供从零开始在 **SO-101 机械臂** 上实现 ACT 策略并部署到 **RDK S100/S100P** 的详细步骤。
@@ -44,6 +45,7 @@
 # 1. 克隆 D-Robotics 仓库
 git clone https://github.com/D-Robotics/lerobot.git
 cd lerobot
+git clone https://github.com/D-Robotics/rdk_LeRobot_tools.git
 
 # 2. 安装依赖
 pip install -e .
@@ -247,16 +249,17 @@ python lerobot/common/robot_devices/cameras/opencv.py \
 ### 5.1 运行采集脚本
 
 ```bash
-python lerobot/scripts/control_robot.py record \
+python lerobot/scripts/control_robot.py \
   --robot.type=so101 \
-  --fps 30 \
-  --root data/so101_pick_place \
-  --repo-id my_id/so101_pick_place \
-  --tags so101 tutorial \
-  --warmup-time-s 5 \
-  --episode-time-s 40 \
-  --reset-time-s 5 \
-  --num-episodes 50
+  --control.type=record \
+  --control.fps=30 \
+  --control.root=data/so101_pick_place \
+  --control.repo_id=my_id/so101_pick_place \
+  --control.tags='["so101","tutorial"]' \
+  --control.warmup-time-s=5 \
+  --control.episode-time-s=40 \
+  --control.reset-time-s=5 \
+  --control.num-episodes=50
 ```
 
 ### 5.2 关键参数详解

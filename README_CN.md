@@ -7,7 +7,7 @@
 
 本仓库提供了一套工具，用于将基于 [LeRobot](https://github.com/D-Robotics/lerobot) 框架训练的 ACT 策略模型导出并部署到地瓜机器人 RDK S100 上，利用 BPU 进行高效推理。
 
-全流程文档可以参考：👉 *[全流程文档](WORKFLOW_GUIDE_CN.md)*
+全流程文档可以参考：👉 *[全流程文档](./doc/WORKFLOW_GUIDE_CN.md)*
 
 ## 目录结构
 
@@ -25,6 +25,7 @@
 ```bash
     git clone https://github.com/D-Robotics/lerobot.git
     cd lerobot
+    git clone https://github.com/D-Robotics/rdk_LeRobot_tools.git
     pip install -e ".[feetech]"
 ```
 此版本兼容 v2.1 数据集，本仓库的导出工具只要能加载 v2.1 数据集的历史版本均可工作。
@@ -34,6 +35,7 @@
     git clone https://github.com/huggingface/lerobot.git
     cd lerobot
     git checkout 8cfab3882480bdde38e42d93a9752de5ed42cae2  # 切换到 v2.1 版本对应的 commit
+    git clone https://github.com/D-Robotics/rdk_LeRobot_tools.git
     pip install -e ".[feetech]"
 ```
 

@@ -1,3 +1,4 @@
+English| [简体中文](./WORKFLOW_GUIDE_CN.md)
 # LeRobot + D-Robotics RDK End-to-End Workflow Guide (Detailed)
 
 This document, based on the [D-Robotics/lerobot](https://github.com/D-Robotics/lerobot) repository and this toolchain, provides detailed steps to implement an ACT policy on the **SO-101 Robot Arm** from scratch and deploy it to **RDK S100/S100P**.
@@ -49,9 +50,10 @@ Ubuntu 20.04/22.04 + NVIDIA GPU is recommended.
 # 1. Clone D-Robotics repository
 git clone https://github.com/D-Robotics/lerobot.git
 cd lerobot
+git clone https://github.com/D-Robotics/rdk_LeRobot_tools.git
 
 # 2. Install dependencies
-pip install -e ".[feetech]"
+pip install -e .
 pip install onnx onnxsim termcolor tqdm
 ```
 
@@ -254,16 +256,17 @@ Collecting high-quality demonstration data is key to training success. It is rec
 ### 5.1 Run Collection Script
 
 ```bash
-python lerobot/scripts/control_robot.py record \
+python lerobot/scripts/control_robot.py \
   --robot.type=so101 \
-  --fps 30 \
-  --root data/so101_pick_place \
-  --repo-id my_id/so101_pick_place \
-  --tags so101 tutorial \
-  --warmup-time-s 5 \
-  --episode-time-s 40 \
-  --reset-time-s 5 \
-  --num-episodes 50
+  --control.type=record \
+  --control.fps=30 \
+  --control.root=data/so101_pick_place \
+  --control.repo_id=my_id/so101_pick_place \
+  --control.tags='["so101","tutorial"]' \
+  --control.warmup-time-s=5 \
+  --control.episode-time-s=40 \
+  --control.reset-time-s=5 \
+  --control.num-episodes=50
 ```
 
 ### 5.2 Key Parameters
