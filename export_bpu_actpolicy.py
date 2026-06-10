@@ -32,6 +32,7 @@ from termcolor import colored
 from onnxsim import simplify
 from pprint import pformat
 from tqdm import tqdm # Import tqdm
+from safetensors.torch import load_file
 
 try:
     from lerobot.common.policies.act.modeling_act import ACTPolicy
@@ -40,7 +41,14 @@ try:
 except ImportError:
     from lerobot.policies.act.modeling_act import ACTPolicy
     from lerobot.datasets.factory import make_dataset
-    from lerobot.utils.utils import get_safe_torch_device, init_logging
+    try:
+        from lerobot.utils.utils import get_safe_torch_device, init_logging
+    except ImportError:
+        def get_safe_torch_device(device, log=False):
+            return torch.device(device)
+
+        def init_logging():
+            logging.basicConfig(level=logging.INFO, format="%(levelname)s %(asctime)s %(filename)s:%(lineno)d %(message)s")
 
 from lerobot.configs import parser
 from lerobot.configs.train import TrainPipelineConfig
@@ -182,6 +190,48 @@ class PlatformConfig:
         else:
             return "%.10d.npy" % index
 
+def _load_processor_stats(act_path):
+    """Load LeRobot v0.5 processor normalization stats from checkpoint files."""
+    preprocessor_stats = os.path.join(
+        act_path, "policy_preprocessor_step_3_normalizer_processor.safetensors"
+    )
+    postprocessor_stats = os.path.join(
+        act_path, "policy_postprocessor_step_0_unnormalizer_processor.safetensors"
+    )
+    if not os.path.exists(preprocessor_stats):
+        raise FileNotFoundError(f"Missing preprocessor stats: {preprocessor_stats}")
+    if not os.path.exists(postprocessor_stats):
+        raise FileNotFoundError(f"Missing postprocessor stats: {postprocessor_stats}")
+
+    return load_file(preprocessor_stats), load_file(postprocessor_stats)
+
+def _stat(stats, feature_name, stat_name):
+    key = f"{feature_name}.{stat_name}"
+    if key not in stats:
+        raise KeyError(f"Missing normalization stat '{key}'. Available examples: {list(stats)[:8]}")
+    return stats[key].detach().cpu()
+
+def _scale_image_to_unit_range(image_tensor):
+    """Dataset images may arrive as uint8-like 0..255 tensors; ACT runtime normalizes 0..1 images."""
+    image_tensor = image_tensor.to(dtype=torch.float32)
+    if image_tensor.detach().amax().item() > 2.0:
+        image_tensor = image_tensor / 255.0
+    return image_tensor
+
+def _normalize_batch_with_stats(batch, stats, image_keys):
+    batch = dict(batch)
+    batch["observation.state"] = (
+        batch["observation.state"] - _stat(stats, "observation.state", "mean")
+    ) / (_stat(stats, "observation.state", "std") + 1e-8)
+
+    for image_key in image_keys:
+        image = _scale_image_to_unit_range(batch[image_key])
+        batch[image_key] = (
+            image - _stat(stats, image_key, "mean")
+        ) / (_stat(stats, image_key, "std") + 1e-8)
+
+    return batch
+
 @parser.wrap()
 def main(cfg: TrainPipelineConfig):
     logging.info(pformat(cfg.to_dict()))
@@ -311,19 +361,17 @@ def main(cfg: TrainPipelineConfig):
     logging.info(f"Detected cameras: {camera_names}")
     
     # 1. 导出前后处理参数 (通用)
-    for camera_name in camera_names:
-        buffer_name = f"buffer_observation_images_{camera_name}"
-        if hasattr(policy.normalize_inputs, buffer_name):
-            buffer = getattr(policy.normalize_inputs, buffer_name)
-            camera_std = buffer.std.data.detach().cpu().numpy()
-            camera_mean = buffer.mean.data.detach().cpu().numpy()
-            np.save(os.path.join(bpu_output_path, f"{camera_name}_std.npy"), camera_std)
-            np.save(os.path.join(bpu_output_path, f"{camera_name}_mean.npy"), camera_mean)
+    pre_stats, post_stats = _load_processor_stats(opt.act_path)
+    for image_key, camera_name in zip(image_keys, camera_names):
+        camera_std = _stat(pre_stats, image_key, "std").numpy()
+        camera_mean = _stat(pre_stats, image_key, "mean").numpy()
+        np.save(os.path.join(bpu_output_path, f"{camera_name}_std.npy"), camera_std)
+        np.save(os.path.join(bpu_output_path, f"{camera_name}_mean.npy"), camera_mean)
 
-    action_std = policy.normalize_inputs.buffer_observation_state.std.data.detach().cpu().numpy()
-    action_mean = policy.normalize_inputs.buffer_observation_state.mean.data.detach().cpu().numpy()
-    action_std_unnormalize = policy.unnormalize_outputs.buffer_action.std.data.detach().cpu().numpy()
-    action_mean_unnormalize = policy.unnormalize_outputs.buffer_action.mean.data.detach().cpu().numpy()
+    action_std = _stat(pre_stats, "observation.state", "std").numpy()
+    action_mean = _stat(pre_stats, "observation.state", "mean").numpy()
+    action_std_unnormalize = _stat(post_stats, "action", "std").numpy()
+    action_mean_unnormalize = _stat(post_stats, "action", "mean").numpy()
 
     np.save(os.path.join(bpu_output_path, "action_std.npy"), action_std)
     np.save(os.path.join(bpu_output_path, "action_mean.npy"), action_mean)
@@ -331,7 +379,7 @@ def main(cfg: TrainPipelineConfig):
     np.save(os.path.join(bpu_output_path, "action_mean_unnormalize.npy"), action_mean_unnormalize)
 
     # 2. 导出 VisionEncoder ONNX
-    batch = policy.normalize_inputs(batch)
+    batch = _normalize_batch_with_stats(batch, pre_stats, image_keys)
     m_VisionEncoder = BPU_ACTPolicy_VisionEncoder(policy)
     m_VisionEncoder.eval()
 
@@ -527,7 +575,7 @@ echo "End of build all."
         if i >= opt.cal_num: break
         
         file_name = platform.get_cal_data_name(i)
-        batch = policy.normalize_inputs(batch)
+        batch = _normalize_batch_with_stats(batch, pre_stats, image_keys)
         
         camera_inputs = {}
         for camera_name in camera_names:
@@ -535,11 +583,11 @@ echo "End of build all."
         
         state_input = batch["observation.state"]
         
-        # VisionEncoder Cal Data (Save every 4th sample, consistent with original)
-        if i % 4 == 0:
-            for camera_name in camera_names:
-                p = os.path.join(cal_data_path_Vision, f"{camera_name}_" + file_name)
-                platform.save_calibration(p, camera_inputs[camera_name])
+        # VisionEncoder Cal Data. Keep the vision calibration distribution aligned
+        # with the transformer feature calibration and runtime preprocessing.
+        for camera_name in camera_names:
+            p = os.path.join(cal_data_path_Vision, f"{camera_name}_" + file_name)
+            platform.save_calibration(p, camera_inputs[camera_name])
 
         # TransformerLayers Cal Data (Input is Vision Features + State)
         for camera_name in camera_names:
