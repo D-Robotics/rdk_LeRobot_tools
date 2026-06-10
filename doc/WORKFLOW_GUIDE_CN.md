@@ -7,11 +7,11 @@
   <table>
     <tr>
       <td align="center">
-        <img src="imgs/so101-leader.webp" width="80%" />
+        <img src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/lerobot/SO101_Leader.webp" width="80%" />
         <br /><b>Leader Arm (主手)</b>
       </td>
       <td align="center">
-        <img src="imgs/so101.webp" width="80%" />
+        <img src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/lerobot/SO101_Follower.webp" width="80%" />
         <br /><b>Follower Arm (从手)</b>
       </td>
     </tr>
@@ -54,6 +54,7 @@
 git clone https://github.com/D-Robotics/lerobot.git
 cd lerobot
 git clone https://github.com/D-Robotics/rdk_LeRobot_tools.git
+cd rdk_LeRobot_tools && git checkout s600 && cd ..
 
 # 2. 安装依赖
 conda activate lerobot
@@ -66,9 +67,11 @@ pip install onnx onnxsim termcolor tqdm safetensors
 SSH 登录到 RDK S600：
 
 ```bash
-# 1. 同样克隆 D-Robotics 的 LeRobot
+# 1. 同样克隆 D-Robotics 的 LeRobot 和本工具仓库
 git clone https://github.com/D-Robotics/lerobot.git
 cd lerobot
+git clone https://github.com/D-Robotics/rdk_LeRobot_tools.git
+cd rdk_LeRobot_tools && git checkout s600 && cd ..
 pip install -e ".[feetech]"
 
 # 2. 安装 BPU 运行时 (仅推理需要，但建议安装)
@@ -101,12 +104,12 @@ pip install hbm-runtime
     ```
 4.  根据命令行提示，每次只连接指定电机，依次完成 1-6 号电机的 ID 和波特率设置。
 
-**操作演示视频：**
-<video controls width="100%" src="https://github.com/user-attachments/assets/b31c115f-e706-4dcd-b7f1-4535da62416d" type="video/mp4"></video>
+**电机设置演示视频：**
+<video controls width="100%" src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/lerobot/setup_motors_so101_2.mp4" type="video/mp4"></video>
 
 ### 2.2 机械臂组装步骤
 
-请参考 [SO-ARM100 官方指南](https://github.com/TheRobotStudio/SO-ARM100) 进行组装。以下是关键关节组装演示：
+请参考 [SO-ARM100 官方指南](https://github.com/TheRobotStudio/SO-ARM100) 和 Hugging Face [SO-101 文档](https://huggingface.co/docs/lerobot/so101) 进行组装。以下是关键关节组装演示：
 
 | Leader-Arm Axis | Motor | Gear Ratio |
 |-----------------|:-------:|:----------:|
@@ -118,28 +121,25 @@ pip install hbm-runtime
 | Gripper             | 6 | 1 / 147 |
 
 *   **Joint 1 (Base)**:
-    <video controls width="100%" src="https://github.com/user-attachments/assets/b0ee9dee-a2d0-445b-8489-02ebecb3d639" type="video/mp4"></video>
+    <video controls width="100%" src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/lerobot/Joint1_v2.mp4" type="video/mp4"></video>
 
 *   **Joint 2 (Shoulder)**:
-    <video controls width="100%" src="https://github.com/user-attachments/assets/32453dc2-5006-4140-9f56-f0d78eae5155" type="video/mp4"></video>
+    <video controls width="100%" src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/lerobot/Joint2_v2.mp4" type="video/mp4"></video>
 
 *   **Joint 3 (Elbow)**:
-    <video controls width="100%" src="https://github.com/user-attachments/assets/7384b9a7-a946-440c-b292-91391bcc4d6b" type="video/mp4"></video>
+    <video controls width="100%" src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/lerobot/Joint3_v2.mp4" type="video/mp4"></video>
 
 *   **Joint 4 (Wrist Roll)**:
-    <video controls width="100%" src="https://github.com/user-attachments/assets/dca78ad0-7c36-4bdf-8162-c9ac42a1506f" type="video/mp4"></video>
+    <video controls width="100%" src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/lerobot/Joint4_v2.mp4" type="video/mp4"></video>
 
 *   **Joint 5 (Wrist Pitch)**:
-    <video controls width="100%" src="https://github.com/user-attachments/assets/55f5d245-976d-49ff-8b4a-59843c441b12" type="video/mp4"></video>
+    <video controls width="100%" src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/lerobot/Joint5_v2.mp4" type="video/mp4"></video>
 
 *   **Gripper (Follower)**:
-    <video controls width="100%" src="https://github.com/user-attachments/assets/6f766aa9-cfae-4388-89e7-0247f198c086" type="video/mp4"></video>
+    <video controls width="100%" src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/lerobot/Gripper_v2.mp4" type="video/mp4"></video>
 
 *   **Handle (Leader)**:
-    <video controls width="100%" src="https://github.com/user-attachments/assets/1308c93d-2ef1-4560-8e93-a3812568a202" type="video/mp4"></video>
-
-*   **Wiring (接线)**:
-    <video controls width="100%" src="https://github.com/user-attachments/assets/4c2cacfd-9276-4ee4-8bf2-ba2492667b78" type="video/mp4"></video>
+    <video controls width="100%" src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/lerobot/Leader_v2.mp4" type="video/mp4"></video>
 
 ### 2.3 查找端口 (RDK S600 推荐)
 
@@ -157,42 +157,36 @@ sudo chmod 666 /dev/ttyACM1
 
 后续运行采集或推理脚本时，通过命令行参数传入端口；本工具的 `bpu_control_robot.py` 默认使用 `--robot-port /dev/ttyACM0`。
 
-**操作演示视频：**
-<video controls width="100%" src="https://github.com/user-attachments/assets/fc45d756-31bb-4a61-b973-a87d633d08a7" type="video/mp4"></video>
-
 ---
 
 ## 3. 校准 (Calibration)
 
 **推荐在 RDK S600 上直接运行。**
-校准是保证主从手同步和模型迁移有效的关键。LeRobot v0.5.2 的 SO-101 校准使用 `lerobot-calibrate` 命令，按提示摆放机械臂姿态。
+校准是保证主从手同步和模型迁移有效的关键。LeRobot v0.5.2 使用 `lerobot-calibrate` 命令，流程与 Hugging Face 官方 [SO-101 文档](https://huggingface.co/docs/lerobot/so101) 一致：
 
-### 3.1 手动校准从手 (Follower)
+1. 先把机械臂摆到各关节运动范围的中位。
+2. 按回车后，再依次把每个关节完整转动一遍，记录其运动范围。
 
-按顺序将从手移动到以下位置：
+**校准演示视频：**
 
-| 1. Middle | 2. Zero | 3. Rotated | 4. Rest |
-| :---: | :---: | :---: | :---: |
-| <img src="imgs/follower_middle.webp" width="100%"/> | <img src="imgs/follower_zero.webp" width="100%"/> | <img src="imgs/follower_rotated.webp" width="100%"/> | <img src="imgs/follower_rest.webp" width="100%"/> |
+<video controls width="100%" src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/lerobot/calibrate_so101_2.mp4" type="video/mp4"></video>
+
+### 3.1 校准从手 (Follower)
 
 ```bash
 lerobot-calibrate \
   --robot.type=so101_follower \
-  --robot.port=/dev/ttyACM0
+  --robot.port=/dev/ttyACM0 \
+  --robot.id=s600_follower
 ```
 
-### 3.2 手动校准主手 (Leader)
-
-按顺序将主手移动到以下位置：
-
-| 1. Middle | 2. Zero | 3. Rotated | 4. Rest |
-| :---: | :---: | :---: | :---: |
-| <img src="imgs/leader_middle.webp" width="100%"/> | <img src="imgs/leader_zero.webp" width="100%"/> | <img src="imgs/leader_rotated.webp" width="100%"/> | <img src="imgs/leader_rest.webp" width="100%"/> |
+### 3.2 校准主手 (Leader)
 
 ```bash
 lerobot-calibrate \
   --teleop.type=so101_leader \
-  --teleop.port=/dev/ttyACM1
+  --teleop.port=/dev/ttyACM1 \
+  --teleop.id=s600_leader
 ```
 
 ---
@@ -200,37 +194,34 @@ lerobot-calibrate \
 ## 4. 摄像头配置 (Cameras)
 
 **推荐在 RDK S600 上直接运行。**
+LeRobot v0.5.2 不再通过 `configs.py` / `so101.yaml` 改相机，而是在 `lerobot-record` / `bpu_control_robot.py` 的命令行里直接传 `--robot.cameras` 或 `--camera-index`。
 
 ### 4.1 查找摄像头索引
 
-连接所有 USB 摄像头到 RDK，运行脚本：
+连接所有 USB 摄像头到 RDK，运行：
 
 ```bash
-python lerobot/common/robot_devices/cameras/opencv.py \
-    --images-dir outputs/images_from_opencv_cameras
+lerobot-find-cameras
 ```
-将生成的图片传回 PC 查看，或直接在板端确认 `camera_00/01` 对应的视角。
 
-### 4.2 修改配置
+记下每个摄像头对应的 `index_or_path`，例如 `0`、`1`。
 
-在 `lerobot/common/robot_devices/robots/configs.py` 或 `so101.yaml` 中更新：
+### 4.2 在命令行里配置相机
 
-```python
-        cameras={
-            "laptop": OpenCVCameraConfig(
-                camera_index=0,  <-- 确认索引
-                fps=30,
-                width=640,
-                height=480,
-            ),
-            "phone": OpenCVCameraConfig(
-                camera_index=1,  <-- 确认索引
-                fps=30,
-                width=640,
-                height=480,
-            ),
-        },
+采集和推理时，把相机名和索引写进命令行。相机名要和后续训练、导出、板端推理保持一致，例如统一使用 `front`：
+
+```bash
+--robot.cameras="{front: {type: opencv, index_or_path: 0, width: 640, height: 480, fps: 30}}"
 ```
+
+板端 BPU 推理时，对应参数是：
+
+```bash
+--camera-index 0 \
+--camera-name front
+```
+
+`--camera-name` 必须和 `bpu_output/` 里的 `front_mean.npy` / `front_std.npy` 文件名一致。
 
 ---
 
@@ -251,12 +242,18 @@ lerobot-record \
   --teleop.port=/dev/ttyACM1 \
   --teleop.id=s600_leader \
   --dataset.repo_id=my_id/so101_pick_place \
+  --dataset.root=/path/to/datasets/so101_pick_place \
   --dataset.num_episodes=50 \
   --dataset.single_task="Pick and place the object" \
+  --dataset.episode_time_s=40 \
+  --dataset.reset_time_s=5 \
+  --dataset.push_to_hub=false \
   --dataset.streaming_encoding=true \
   --dataset.encoder_threads=2 \
   --display_data=true
 ```
+
+如果不指定 `--dataset.root`，数据默认会写到 `~/.cache/huggingface/lerobot/<repo_id>`。
 
 ### 5.2 关键参数详解
 
@@ -267,9 +264,13 @@ lerobot-record \
 | `--teleop.type` | 主手机械臂类型 | `so101_leader` |
 | `--teleop.port` | 主手串口 | 通过 `lerobot-find-port` 获取 |
 | `--robot.cameras` | 相机配置 | S600 USB 摄像头一般使用 `opencv` + `index_or_path` |
-| `--dataset.repo_id` | Hugging Face 仓库 ID | 格式 `user/dataset_name`，本地训练时也用于数据集元信息 |
+| `--dataset.repo_id` | 数据集 ID | 格式 `user/dataset_name` |
+| `--dataset.root` | 本地保存路径 | 建议显式指定，便于后续拷贝到开发机训练 |
 | `--dataset.num_episodes` | 计划采集总条数 | `50` 条起步，多多益善 |
 | `--dataset.single_task` | 当前数据集任务描述 | 要与实际采集任务一致 |
+| `--dataset.episode_time_s` | 单条数据最大时长 | 简单任务建议 `30-40` 秒 |
+| `--dataset.reset_time_s` | 复位时间 | 建议 `5` 秒 |
+| `--dataset.push_to_hub` | 是否上传 Hub | 本地调试建议 `false` |
 
 ### 5.3 键盘控制 (Keyboard Shortcuts)
 
@@ -287,50 +288,39 @@ lerobot-record \
 ## 6. 模型训练 (ACT Policy)
 
 **此步骤必须在开发机 (带 GPU) 上运行。**
-将采集好的 `data/so101_pick_place` 文件夹从 RDK 拷贝到开发机。
+将 RDK 上采集好的数据集目录（例如 `/path/to/datasets/so101_pick_place`）拷贝到开发机。
 
-### 6.1 修改训练配置 (推荐)
+### 6.1 安装训练依赖
 
-我们推荐直接修改 `lerobot/configs/train.py` 文件，以设置训练的默认参数，也可以参考原版教程使用config.yaml等方式来实现。
-
-以下是修改示例：
-
-```python
-# ... (文件顶部导入部分省略) ...
-
-    # 训练核心参数
-    seed: int | None = 1000
-    # Number of workers for the dataloader.
-    num_workers: int = 4
-    batch_size: int = 8
-    steps: int = 100_000
-    eval_freq: int = 20_000
-    log_freq: int = 200
-
-# ... (文件其余部分省略) ...
+```bash
+conda activate lerobot
+pip install -e ".[training]"
 ```
 
-### 6.2 启动训练与进阶
+### 6.2 启动训练
 
-**标准启动命令**:
+LeRobot v0.5.2 推荐直接通过命令行传参，不再修改 `lerobot/configs/train.py`。
 
 ```bash
 lerobot-train \
-  --dataset.repo_id=${HF_USER}/so101_test \
-  --dataset.root=data/so101_pick_place \
+  --dataset.repo_id=my_id/so101_pick_place \
+  --dataset.root=/path/to/datasets/so101_pick_place \
   --policy.type=act \
   --output_dir=outputs/train/act_so101_test \
   --job_name=act_so101_test \
+  --steps=100000 \
+  --batch_size=8 \
   --policy.device=cuda \
   --wandb.enable=true
 ```
 
 **参数详解**:
-*   `--dataset.repo_id`: 指定训练使用的数据集 ID 指定了root后此处占位即可。
-*   `--dataset.root`: 本地数据集路径 (例如 `data/so101_pick_place`)。
-*   `--policy.type=act`: 指定使用 ACT 策略。该策略会自动加载 `configuration_act.py` 中的配置，并根据数据集中保存的机器人信息（如电机状态数量、相机数量）自动适配网络结构。
-*   `--policy.device=cuda`: 指定训练设备。NVIDIA GPU 使用 `cuda`，Apple Silicon 可以使用 `mps`。
-*   `--wandb.enable=true`: 开启 Weights and Biases 可视化训练曲线（需先运行 `wandb login`）。
+*   `--dataset.repo_id`: 数据集 ID，需与采集时一致。
+*   `--dataset.root`: 本地数据集路径。
+*   `--policy.type=act`: 使用 ACT 策略，网络结构会按数据集里的机器人和相机信息自动适配。
+*   `--steps` / `--batch_size`: 训练步数和 batch size，直接通过 CLI 指定。
+*   `--policy.device=cuda`: NVIDIA GPU 使用 `cuda`。
+*   `--wandb.enable=true`: 开启 W&B（需先 `wandb login`）。
 
 **恢复训练 (Resume Training)**:
 
@@ -377,6 +367,7 @@ combine_jobs: 6
 
 ```bash
 # 1. 导出 ONNX (开发机)
+cd rdk_LeRobot_tools
 python export_bpu_actpolicy.py --config bpu_export_config_s600_calfix.yaml
 ```
 *成功标志：`export_path` 指定的目录中生成 `build_all.sh`、ONNX 文件和校准数据。*
@@ -447,10 +438,10 @@ bpu_output/
     |-- action_mean_unnormalize.npy
     |-- action_std.npy
     |-- action_std_unnormalize.npy
-    |-- camera1_mean.npy    # camera names are auto-detected
-    |-- camera1_std.npy
-    |-- camera2_mean.npy
-    `-- camera2_std.npy
+    |-- front_mean.npy      # 相机名与采集/导出时一致
+    |-- front_std.npy
+    |-- new_actions.npy
+    `-- ...
 ```
 
 完成后，请将生成的 `bpu_output` 文件夹拷贝到 RDK 板端用于部署。
@@ -462,7 +453,7 @@ bpu_output/
 ### 前提条件
 1.  已安装 `D-Robotics/lerobot` 仓库的 LeRobot 和 `hbm-runtime`。
 2.  已将 **`bpu_output`** 文件夹（包含量化后的 `.hbm` 模型和校准参数）传输到板端。
-3.  **硬件配置**: 请参考以上的数据采集和遥操作步骤，完成 `config` 文件的配置，确保**机械臂端口号**、**相机端口号**及**校准文件**配置正确。
+3.  **硬件配置**: 确保机械臂端口、相机索引、相机名称与训练/导出时一致；校准文件由 `lerobot-calibrate` 自动保存到 `~/.cache/huggingface/lerobot/calibration/`。
 
 ### 运行 BPU 加速推理
 
@@ -483,9 +474,11 @@ bpu_output/
       --inference-time 60
     ```
 
+    当前 `bpu_control_robot.py` 默认连接 **SO100Follower**，不是 `so101`。如果你实际部署的是 SO-101 从手，需要先确认 LeRobot 机器人类型与机械臂一致。
+
     ACT 一次推理会输出 100 步 action chunk，脚本会自动从 `new_actions.npy` 推断 `n_action_steps`。不要为了调试传 `--n-action-steps 1`，否则会改变 ACT 的运行语义。
 
 ### 故障排查
 
-*   **机械臂不动**: 检查 `ls /dev/ttyUSB*`；检查 sudo 权限。
-*   **相机报错**: 确认自动检测的相机 index 对应正确。
+*   **机械臂不动**: 检查 `ls /dev/ttyACM*`；确认 `--robot-port` 正确。
+*   **相机报错**: 确认 `--camera-index` 和 `--camera-name` 与 `bpu_output/*_mean.npy` 一致。

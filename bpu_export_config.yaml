@@ -1,5 +1,6 @@
-# BPU导出配置文件
-# 使用方法: python rdk_LeRobot_tools/export_bpu_actpolicy.py --config rdk_LeRobot_tools/bpu_export_config.yaml
+# BPU 导出通用模板（非 S600 默认配置）
+# 注意：RDK S600 请使用 bpu_export_config_s600_calfix.yaml，不要使用本文件的 nash-e 默认值。
+# 使用方法: python export_bpu_actpolicy.py --config bpu_export_config.yaml
 
 # ========== LeRobot参数 ==========
 # 数据集配置

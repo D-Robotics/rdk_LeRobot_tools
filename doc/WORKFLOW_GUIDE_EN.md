@@ -7,11 +7,11 @@ This document, based on the [D-Robotics/lerobot](https://github.com/D-Robotics/l
   <table>
     <tr>
       <td align="center">
-        <img src="imgs/so101-leader.webp" width="80%" />
+        <img src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/lerobot/SO101_Leader.webp" width="80%" />
         <br /><b>Leader Arm</b>
       </td>
       <td align="center">
-        <img src="imgs/so101.webp" width="80%" />
+        <img src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/lerobot/SO101_Follower.webp" width="80%" />
         <br /><b>Follower Arm</b>
       </td>
     </tr>
@@ -52,6 +52,7 @@ Ubuntu 20.04/22.04 + NVIDIA GPU is recommended.
 git clone https://github.com/D-Robotics/lerobot.git
 cd lerobot
 git clone https://github.com/D-Robotics/rdk_LeRobot_tools.git
+cd rdk_LeRobot_tools && git checkout s600 && cd ..
 
 # 2. Install dependencies
 conda activate lerobot
@@ -64,9 +65,11 @@ pip install onnx onnxsim termcolor tqdm safetensors
 SSH into RDK S600:
 
 ```bash
-# 1. Clone D-Robotics LeRobot as well
+# 1. Clone D-Robotics LeRobot and this tools repo
 git clone https://github.com/D-Robotics/lerobot.git
 cd lerobot
+git clone https://github.com/D-Robotics/rdk_LeRobot_tools.git
+cd rdk_LeRobot_tools && git checkout s600 && cd ..
 pip install -e ".[feetech]"
 
 # 2. Install BPU runtime (required for inference, recommended to install)
@@ -99,12 +102,12 @@ Before assembly, you need to set the ID for each motor. The SO-101 requires 6 mo
     ```
 4.  Follow the CLI prompts, connecting only the requested motor each time, until motor IDs and baudrate are configured.
 
-**Demo Video:**
-<video controls width="100%" src="https://github.com/user-attachments/assets/b31c115f-e706-4dcd-b7f1-4535da62416d" type="video/mp4"></video>
+**Motor setup demo video:**
+<video controls width="100%" src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/lerobot/setup_motors_so101_2.mp4" type="video/mp4"></video>
 
 ### 2.2 Assembly Instructions
 
-Please refer to the [Official SO-ARM100 Guide](https://github.com/TheRobotStudio/SO-ARM100) for 3D printed parts assembly.
+Please refer to the [Official SO-ARM100 Guide](https://github.com/TheRobotStudio/SO-ARM100) and the Hugging Face [SO-101 documentation](https://huggingface.co/docs/lerobot/so101) for assembly.
 
 | Leader-Arm Axis | Motor | Gear Ratio |
 |-----------------|:-------:|:----------:|
@@ -118,28 +121,25 @@ Please refer to the [Official SO-ARM100 Guide](https://github.com/TheRobotStudio
 **Key Joint Assembly Demos:**
 
 *   **Joint 1 (Base)**:
-    <video controls width="100%" src="https://github.com/user-attachments/assets/b0ee9dee-a2d0-445b-8489-02ebecb3d639" type="video/mp4"></video>
+    <video controls width="100%" src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/lerobot/Joint1_v2.mp4" type="video/mp4"></video>
 
 *   **Joint 2 (Shoulder)**:
-    <video controls width="100%" src="https://github.com/user-attachments/assets/32453dc2-5006-4140-9f56-f0d78eae5155" type="video/mp4"></video>
+    <video controls width="100%" src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/lerobot/Joint2_v2.mp4" type="video/mp4"></video>
 
 *   **Joint 3 (Elbow)**:
-    <video controls width="100%" src="https://github.com/user-attachments/assets/7384b9a7-a946-440c-b292-91391bcc4d6b" type="video/mp4"></video>
+    <video controls width="100%" src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/lerobot/Joint3_v2.mp4" type="video/mp4"></video>
 
 *   **Joint 4 (Wrist Roll)**:
-    <video controls width="100%" src="https://github.com/user-attachments/assets/dca78ad0-7c36-4bdf-8162-c9ac42a1506f" type="video/mp4"></video>
+    <video controls width="100%" src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/lerobot/Joint4_v2.mp4" type="video/mp4"></video>
 
 *   **Joint 5 (Wrist Pitch)**:
-    <video controls width="100%" src="https://github.com/user-attachments/assets/55f5d245-976d-49ff-8b4a-59843c441b12" type="video/mp4"></video>
+    <video controls width="100%" src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/lerobot/Joint5_v2.mp4" type="video/mp4"></video>
 
 *   **Gripper (Follower)**:
-    <video controls width="100%" src="https://github.com/user-attachments/assets/6f766aa9-cfae-4388-89e7-0247f198c086" type="video/mp4"></video>
+    <video controls width="100%" src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/lerobot/Gripper_v2.mp4" type="video/mp4"></video>
 
 *   **Handle (Leader)**:
-    <video controls width="100%" src="https://github.com/user-attachments/assets/1308c93d-2ef1-4560-8e93-a3812568a202" type="video/mp4"></video>
-
-*   **Wiring**:
-    <video controls width="100%" src="https://github.com/user-attachments/assets/4c2cacfd-9276-4ee4-8bf2-ba2492667b78" type="video/mp4"></video>
+    <video controls width="100%" src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/lerobot/Leader_v2.mp4" type="video/mp4"></video>
 
 ### 2.3 Find Ports (Recommended on RDK S600)
 
@@ -157,42 +157,36 @@ sudo chmod 666 /dev/ttyACM1
 
 Pass the port via command-line options in collection or inference scripts. This tool's `bpu_control_robot.py` defaults to `--robot-port /dev/ttyACM0`.
 
-**Demo Video:**
-<video controls width="100%" src="https://github.com/user-attachments/assets/fc45d756-31bb-4a61-b973-a87d633d08a7" type="video/mp4"></video>
-
 ---
 
 ## 3. Calibration
 
 **Recommended to run directly on RDK S600.**
-Calibration is crucial for synchronizing arms and making the trained policy transferable. LeRobot v0.5.2 uses `lerobot-calibrate`; follow the prompts to place the arm in the requested poses.
+Calibration is crucial for synchronizing arms and making the trained policy transferable. LeRobot v0.5.2 uses `lerobot-calibrate`, following the same flow as the official Hugging Face [SO-101 documentation](https://huggingface.co/docs/lerobot/so101):
 
-### 3.1 Manual Calibration (Follower)
+1. Move the arm so every joint is near the middle of its range.
+2. Press Enter, then move each joint through its full range of motion.
 
-Move the follower arm to the following positions sequentially:
+**Calibration demo video:**
 
-| 1. Middle | 2. Zero | 3. Rotated | 4. Rest |
-| :---: | :---: | :---: | :---: |
-| <img src="imgs/follower_middle.webp" width="100%"/> | <img src="imgs/follower_zero.webp" width="100%"/> | <img src="imgs/follower_rotated.webp" width="100%"/> | <img src="imgs/follower_rest.webp" width="100%"/> |
+<video controls width="100%" src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/lerobot/calibrate_so101_2.mp4" type="video/mp4"></video>
+
+### 3.1 Calibrate Follower
 
 ```bash
 lerobot-calibrate \
   --robot.type=so101_follower \
-  --robot.port=/dev/ttyACM0
+  --robot.port=/dev/ttyACM0 \
+  --robot.id=s600_follower
 ```
 
-### 3.2 Manual Calibration (Leader)
-
-Move the leader arm to the following positions sequentially:
-
-| 1. Middle | 2. Zero | 3. Rotated | 4. Rest |
-| :---: | :---: | :---: | :---: |
-| <img src="imgs/leader_middle.webp" width="100%"/> | <img src="imgs/leader_zero.webp" width="100%"/> | <img src="imgs/leader_rotated.webp" width="100%"/> | <img src="imgs/leader_rest.webp" width="100%"/> |
+### 3.2 Calibrate Leader
 
 ```bash
 lerobot-calibrate \
   --teleop.type=so101_leader \
-  --teleop.port=/dev/ttyACM1
+  --teleop.port=/dev/ttyACM1 \
+  --teleop.id=s600_leader
 ```
 
 ---
@@ -200,37 +194,34 @@ lerobot-calibrate \
 ## 4. Camera Configuration
 
 **Recommended to run directly on RDK S600.**
+LeRobot v0.5.2 no longer edits cameras through `configs.py` / `so101.yaml`. Pass camera settings directly via `--robot.cameras` in `lerobot-record` or via `--camera-index` / `--camera-name` in `bpu_control_robot.py`.
 
 ### 4.1 Find Camera Indices
 
 Connect all USB cameras to RDK and run:
 
 ```bash
-python lerobot/common/robot_devices/cameras/opencv.py \
-    --images-dir outputs/images_from_opencv_cameras
+lerobot-find-cameras
 ```
-Check the generated images to confirm which view corresponds to `camera_00/01`.
 
-### 4.2 Modify Config
+Note each camera's `index_or_path`, e.g. `0`, `1`.
 
-Update in `lerobot/common/robot_devices/robots/configs.py` or `so101.yaml`:
+### 4.2 Configure Cameras on the CLI
 
-```python
-        cameras={
-            "laptop": OpenCVCameraConfig(
-                camera_index=0,  <-- Confirm index
-                fps=30,
-                width=640,
-                height=480,
-            ),
-            "phone": OpenCVCameraConfig(
-                camera_index=1,  <-- Confirm index
-                fps=30,
-                width=640,
-                height=480,
-            ),
-        },
+Use the same camera name across collection, training, export, and board inference. For example, use `front` everywhere:
+
+```bash
+--robot.cameras="{front: {type: opencv, index_or_path: 0, width: 640, height: 480, fps: 30}}"
 ```
+
+For board-side BPU inference, the matching options are:
+
+```bash
+--camera-index 0 \
+--camera-name front
+```
+
+`--camera-name` must match files such as `front_mean.npy` / `front_std.npy` inside `bpu_output/`.
 
 ---
 
@@ -251,12 +242,18 @@ lerobot-record \
   --teleop.port=/dev/ttyACM1 \
   --teleop.id=s600_leader \
   --dataset.repo_id=my_id/so101_pick_place \
+  --dataset.root=/path/to/datasets/so101_pick_place \
   --dataset.num_episodes=50 \
   --dataset.single_task="Pick and place the object" \
+  --dataset.episode_time_s=40 \
+  --dataset.reset_time_s=5 \
+  --dataset.push_to_hub=false \
   --dataset.streaming_encoding=true \
   --dataset.encoder_threads=2 \
   --display_data=true
 ```
+
+If `--dataset.root` is omitted, data is stored under `~/.cache/huggingface/lerobot/<repo_id>` by default.
 
 ### 5.2 Key Parameters
 
@@ -267,9 +264,13 @@ lerobot-record \
 | `--teleop.type` | Leader arm type | `so101_leader` |
 | `--teleop.port` | Leader serial port | Get it with `lerobot-find-port` |
 | `--robot.cameras` | Camera configuration | S600 USB cameras usually use `opencv` + `index_or_path` |
-| `--dataset.repo_id` | Hugging Face repo ID | Format `user/dataset_name`; also used as local dataset metadata |
+| `--dataset.repo_id` | Dataset ID | Format `user/dataset_name` |
+| `--dataset.root` | Local save path | Recommended to set explicitly for later training |
 | `--dataset.num_episodes` | Total episodes | `50+` recommended |
 | `--dataset.single_task` | Task description | Keep it consistent with the actual collection task |
+| `--dataset.episode_time_s` | Max duration per episode | `30-40`s for simple tasks |
+| `--dataset.reset_time_s` | Reset time | `5`s recommended |
+| `--dataset.push_to_hub` | Upload to Hub | Use `false` for local-only debugging |
 
 ### 5.3 Keyboard Controls
 
@@ -283,50 +284,39 @@ After collection, verify that the data is valid (images clear, motion synchroniz
 ## 6. Model Training (ACT Policy)
 
 **This step must be run on the Development Machine (with GPU).**
-Copy the collected `data/so101_pick_place` folder from RDK to the development machine.
+Copy the dataset directory collected on RDK (e.g. `/path/to/datasets/so101_pick_place`) to the development machine.
 
-### 6.1 Modify Training Configuration (Recommended)
+### 6.1 Install Training Dependencies
 
-We recommend directly modifying the `TrainPipelineConfig` class in `lerobot/configs/train.py` to set default parameters. Or you can refer to the original tutorial to use `config.yaml`, etc.
-
-Here is an example modification:
-
-```python
-# ... (Imports at the top of the file are omitted) ...
-
-    # Core Training Parameters
-    seed: int | None = 1000
-    # Number of workers for the dataloader.
-    num_workers: int = 4
-    batch_size: int = 8
-    steps: int = 100_000
-    eval_freq: int = 20_000
-    log_freq: int = 200
-
-# ... (Rest of the file is omitted) ...
+```bash
+conda activate lerobot
+pip install -e ".[training]"
 ```
 
-### 6.2 Start Training & Advanced Options
+### 6.2 Start Training
 
-**Standard Start Command**:
+LeRobot v0.5.2 recommends passing training parameters directly on the CLI instead of editing `lerobot/configs/train.py`.
 
 ```bash
 lerobot-train \
-  --dataset.repo_id=${HF_USER}/so101_test \
-  --dataset.root=data/so101_pick_place \
+  --dataset.repo_id=my_id/so101_pick_place \
+  --dataset.root=/path/to/datasets/so101_pick_place \
   --policy.type=act \
   --output_dir=outputs/train/act_so101_test \
   --job_name=act_so101_test \
+  --steps=100000 \
+  --batch_size=8 \
   --policy.device=cuda \
   --wandb.enable=true
 ```
 
 **Parameter Details**:
-*   `--dataset.repo_id`: Specifies the dataset ID. If `root` is specified, this is a placeholder.
-*   `--dataset.root`: Local dataset path (e.g., `data/so101_pick_place`).
-*   `--policy.type=act`: Specifies using the ACT policy. This policy automatically loads configurations from `configuration_act.py` and adapts the network structure based on robot information saved in your dataset.
-*   `--policy.device=cuda`: Specifies the training device. Use `cuda` for NVIDIA GPUs, `mps` for Apple Silicon.
-*   `--wandb.enable=true`: Enables Weights and Biases for visualizing training plots (requires running `wandb login` first).
+*   `--dataset.repo_id`: Dataset ID, must match the collection step.
+*   `--dataset.root`: Local dataset path.
+*   `--policy.type=act`: Uses ACT; network structure adapts to robot/camera info in the dataset.
+*   `--steps` / `--batch_size`: Training steps and batch size, set directly via CLI.
+*   `--policy.device=cuda`: Use `cuda` on NVIDIA GPUs.
+*   `--wandb.enable=true`: Enables W&B (requires `wandb login` first).
 
 **Resume Training**:
 
@@ -373,6 +363,7 @@ This config generates calibration data aligned with S600 runtime preprocessing: 
 
 ```bash
 # 1. Export ONNX (Development Machine)
+cd rdk_LeRobot_tools
 python export_bpu_actpolicy.py --config bpu_export_config_s600_calfix.yaml
 ```
 *Success indicator: The directory specified by `export_path` contains `build_all.sh`, ONNX files, and calibration data.*
@@ -443,10 +434,10 @@ bpu_output/
     |-- action_mean_unnormalize.npy
     |-- action_std.npy
     |-- action_std_unnormalize.npy
-    |-- camera1_mean.npy    # camera names are auto-detected
-    |-- camera1_std.npy
-    |-- camera2_mean.npy
-    `-- camera2_std.npy
+    |-- front_mean.npy      # camera name must match collection/export
+    |-- front_std.npy
+    |-- new_actions.npy
+    `-- ...
 ```
 
 After completion, copy the generated `bpu_output` folder to the RDK board for deployment.
@@ -458,7 +449,7 @@ After completion, copy the generated `bpu_output` folder to the RDK board for de
 ### Prerequisites
 1.  Installed LeRobot from `D-Robotics/lerobot` repository and `hbm-runtime`.
 2.  Transferred the **`bpu_output`** folder (containing quantized `.hbm` models and calibration parameters) to the board.
-3.  **Hardware Config**: Ensure **robot arm ports**, **camera ports**, and **calibration files** are correctly configured by referring to the Data Collection and Teleoperation steps above.
+3.  **Hardware Config**: Ensure robot port, camera index, and camera name match training/export settings. Calibration files are saved by `lerobot-calibrate` under `~/.cache/huggingface/lerobot/calibration/`.
 
 ### Run BPU Accelerated Inference
 
@@ -479,9 +470,11 @@ This is the final step to deploy the trained model to the RDK.
       --inference-time 60
     ```
 
+    The current `bpu_control_robot.py` connects to **SO100Follower** by default, not `so101`. If you deploy on an SO-101 follower arm, first confirm the LeRobot robot type matches your hardware.
+
     ACT emits a 100-step action chunk in one inference. The script auto-detects `n_action_steps` from `new_actions.npy`. Do not pass `--n-action-steps 1` for debugging, because that changes ACT runtime semantics.
 
 ### Troubleshooting
 
-*   **Robot Not Moving**: Check `ls /dev/ttyUSB*`; check sudo permissions.
-*   **Camera Error**: Confirm that the auto-detected camera indices are correct.
+*   **Robot Not Moving**: Check `ls /dev/ttyACM*`; confirm `--robot-port` is correct.
+*   **Camera Error**: Confirm `--camera-index` and `--camera-name` match `bpu_output/*_mean.npy`.

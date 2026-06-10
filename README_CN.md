@@ -11,10 +11,9 @@
 
 ## 目录结构
 
-*   `damo/`: 适配 DAMO 开发者矩阵-乐云具身智能开发平台的工具包。
 *   `export_bpu_actpolicy.py`: **模型导出脚本**（在开发机/训练服务器上运行）。用于将 PyTorch 权重转换为 ONNX 并生成 BPU 编译所需的配置文件和脚本。
-*   `bpu_export_config.yaml`: 模型导出配置文件。
-*   `bpu_export_config_s600_calfix.yaml`: LeRobot v0.5.2 / SO100 ACT / S600 (`nash-p`) 的示例导出配置。
+*   `bpu_export_config_s600_calfix.yaml`: **S600 推荐配置**。LeRobot v0.5.2 / SO100 ACT / `nash-p`。
+*   `bpu_export_config.yaml`: 其他平台通用模板（默认 `nash-e`，S600 不要用）。
 *   `bpu_control_robot.py`: **板端部署脚本**（在 RDK 板端运行）。加载编译好的 BPU 模型并控制机器人。
 
 ## 1. 环境准备
@@ -81,28 +80,19 @@ pip install onnx onnxsim termcolor tqdm safetensors
 ### 第一步：导出 ONNX 及配置
 
 1.  **修改配置文件**:
-    编辑 `bpu_export_config.yaml`，根据实际情况修改以下关键字段：
+    S600 / SO100 ACT 请直接编辑 `bpu_export_config_s600_calfix.yaml`：
     *   `dataset.root`: 训练时使用的数据集根目录。
-    *   `act_path`: 训练好的 ACT 模型检查点路径 (包含 `config.json` 和 `model.safetensors`)。
-    *   `type`: BPU 平台类型。脚本会自动根据此类型调整编译参数。
-        *   `nash-e` / `nash-m` / `nash-p`: 适用于 Nash 架构；S600 使用 `nash-p`。
-        *   `bayes` / `bayes-e`: 适用于 RDK X5 等 Bayes 架构。
-
-    S600 / SO100 ACT 可以参考 `bpu_export_config_s600_calfix.yaml`。该配置使用：
-    *   `type: "nash-p"`
-    *   `cal_num: 100`
-    *   `export_path: ".../bpu_export_act_so100_s600_calfix"`
+    *   `act_path`: 训练好的 ACT checkpoint 路径。
+    *   `export_path`: 导出输出目录。
+    *   `type`: S600 固定为 `nash-p`。
+    *   `cal_num`: 建议 `100`。
 
 2.  **运行导出脚本**:
     ```bash
-    python export_bpu_actpolicy.py --config bpu_export_config.yaml
-    ```
-    运行成功后，会在 `bpu_export_output` (或配置指定的目录) 下生成 ONNX 模型、校准数据和编译脚本 (`build_all.sh`)。
-
-    S600 示例：
-    ```bash
+    cd rdk_LeRobot_tools
     python export_bpu_actpolicy.py --config bpu_export_config_s600_calfix.yaml
     ```
+    运行成功后，会在 `export_path` 指定目录下生成 ONNX、校准数据和 `build_all.sh`。
 
     **重要提示：** 导出脚本会从 LeRobot v0.5.2 checkpoint 的 processor safetensors 中读取图像、state 和 action 的归一化参数。图像校准数据会先确保输入是 `0..1` float，再做 `(image - mean) / std`，从而和板端运行时的 `uint8 -> /255.0 -> normalize` 保持一致。
 
@@ -111,7 +101,7 @@ pip install onnx onnxsim termcolor tqdm safetensors
 进入工具链 Docker 环境，运行上一步生成的编译脚本：
 
 ```bash
-cd bpu_export_output
+cd /path/to/bpu_export_act_so100_s600_calfix
 bash build_all.sh
 ```
 
@@ -125,7 +115,7 @@ docker run --rm \
   bash build_all.sh
 ```
 
-编译完成后，`bpu_export_output` 目录下会生成一个 **`bpu_output`** 文件夹。这个文件夹包含了：
+编译完成后，导出目录下会生成 **`bpu_output`** 文件夹。这个文件夹包含了：
 *   `.hbm` / `.bin`: 编译好的 BPU 模型文件（可在 BPU 上运行）。
 *   `.npy`: 运行时所需的归一化参数。
 *   `new_actions.npy`: 转换前的模型推理结果（用于精度验证）。
@@ -141,10 +131,10 @@ docker run --rm \
     |-- action_mean_unnormalize.npy
     |-- action_std.npy
     |-- action_std_unnormalize.npy
-    |-- camera1_mean.npy    # camera names are auto-detected
-    |-- camera1_std.npy
-    |-- camera2_mean.npy
-    `-- camera2_std.npy
+    |-- front_mean.npy
+    |-- front_std.npy
+    |-- new_actions.npy
+    `-- ...
 ```
 
 ## 3. 板端推理 (在 RDK 上执行)
@@ -152,39 +142,37 @@ docker run --rm \
 板端推理的核心是使用 **`bpu_control_robot.py`** 脚本。
 
 ### 前提条件
-1.  已安装 `D-Robotics/lerobot` 仓库的 LeRobot 和 `hbm_runtime`。
+1.  已安装 `D-Robotics/lerobot` 仓库的 LeRobot 和 `hbm-runtime`。
 2.  已将 **`bpu_output`** 文件夹（包含量化后的 `.hbm` 模型和校准参数）传输到板端。
-3.  **硬件配置**: 请参考官方的数据采集和遥操作步骤，完成 `config` 文件的配置，确保**机械臂端口号**、**相机端口号**及**校准文件**配置正确。
+3.  **硬件配置**: 通过命令行传入机械臂端口、相机索引和相机名称；校准文件由 `lerobot-calibrate` 保存。
 
 ### 运行步骤
 
-1.  连接机器人（默认配置为 `so101`）。
-2.  运行控制脚本，指定模型路径：
+1.  连接机器人。当前脚本默认使用 **SO100Follower**。
+2.  运行控制脚本：
 
     ```bash
-    # 假设 bpu_output 在当前目录下
-    python bpu_control_robot.py --bpu-act-path ./bpu_output
+    cd rdk_LeRobot_tools
+    python bpu_control_robot.py \
+      --bpu-act-path ../bpu_output \
+      --robot-port /dev/ttyACM0 \
+      --camera-index 0 \
+      --camera-name front \
+      --fps 30 \
+      --inference-time 60
     ```
 
 ### 常见参数
 
 *   `--bpu-act-path`: BPU 模型文件夹路径 (必须包含 `.hbm` 和 `.npy` 文件)。
+*   `--robot-port`: 从手串口，默认 `/dev/ttyACM0`。
+*   `--camera-index` / `--camera-name`: 相机索引和名称，需与 `bpu_output/*_mean.npy` 一致。
 *   `--fps`: 控制循环频率 (默认 30Hz)。
 *   `--inference-time`: 自动运行的持续时间 (秒)。
-
-## 4. DAMO 平台模型适配
-
-如果您使用的是 **DAMO 开发者矩阵-乐云具身智能开发平台** 采集的数据和训练的模型，在进行 BPU 模型导出前，**必须** 对数据集进行格式适配。
-
-**操作步骤：**
-
-1.  **备份数据**：该操作会直接修改源文件，请务必先备份您的数据集文件夹。
-2.  **编辑脚本**：打开 `damo/replace.py`，修改 `folder_path` 为数据集路径。
-3.  **运行转换**：`python damo/replace.py`
 
 ## 注意事项
 
 *   **模型兼容性**: 板端运行必须使用经过 OE 工具链量化并编译的 `.hbm` / `.bin` 模型，不能直接运行 ONNX 或 PyTorch 模型。
-*   **机器人配置**: `bpu_control_robot.py` 默认连接 `so101` 机器人。如需更改，请修改代码中的 `make_robot("so101")`。
+*   **机器人配置**: `bpu_control_robot.py` 当前硬编码为 `SO100Follower`。如果部署 SO-101，需要先改代码中的机器人类型。
 *   **S600 校准一致性**: 对于 LeRobot v0.5.2 的 ACT 模型，图像 calibration 必须与运行时预处理一致，即 `uint8 -> /255.0 -> (image - mean) / std`。如果直接用 `0..255` 图像做 ImageNet normalize，会导致 Vision/Transformer 量化范围错误，BPU 输出动作可能严重偏离 PyTorch/ONNX。
 *   **ACT chunk**: ACT 一次输出 100 步 action chunk，板端不要为了规避问题传 `--n-action-steps 1`。
