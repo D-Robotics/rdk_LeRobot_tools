@@ -1,11 +1,11 @@
 [English](./README.md) | 简体中文
 # RDK LeRobot Tools
 
-**此版本为 STABLE (稳定) 版本，主要适配较旧版本 LeRobot（兼容 v2.1 数据集）。新版本 LeRobot 请切换到对应的分支。**
+**此 `s600` 分支用于 LeRobot v0.5.2 的 ACT 模型导出与 RDK S600 BPU 部署验证。**
 
-**注意：本工具目前仅在 RDK S100 上验证了 ACT 模型的部署效果，其他硬件平台或模型架构的效果无法保证。**
+**注意：S600 请使用 `nash-p` / OE 3.7.0 S100/S600 工具链；不要混用旧的 S100/S600 实验产物或旧校准配置。**
 
-本仓库提供了一套工具，用于将基于 [LeRobot](https://github.com/D-Robotics/lerobot) 框架训练的 ACT 策略模型导出并部署到地瓜机器人 RDK S100 上，利用 BPU 进行高效推理。
+本仓库提供了一套工具，用于将基于 [LeRobot](https://github.com/D-Robotics/lerobot) 框架训练的 ACT 策略模型导出并部署到地瓜机器人 RDK S600 上，利用 BPU 进行高效推理。
 
 全流程文档可以参考：👉 *[全流程文档](./doc/WORKFLOW_GUIDE_CN.md)*
 
@@ -14,13 +14,22 @@
 *   `damo/`: 适配 DAMO 开发者矩阵-乐云具身智能开发平台的工具包。
 *   `export_bpu_actpolicy.py`: **模型导出脚本**（在开发机/训练服务器上运行）。用于将 PyTorch 权重转换为 ONNX 并生成 BPU 编译所需的配置文件和脚本。
 *   `bpu_export_config.yaml`: 模型导出配置文件。
+*   `bpu_export_config_s600_calfix.yaml`: LeRobot v0.5.2 / SO100 ACT / S600 (`nash-p`) 的示例导出配置。
 *   `bpu_control_robot.py`: **板端部署脚本**（在 RDK 板端运行）。加载编译好的 BPU 模型并控制机器人。
 
 ## 1. 环境准备
 
 ### 1.1 开发机 (用于模型转换)
 
-**严格推荐**使用 D-Robotics 提供的 LeRobot 仓库搭建开发环境，以确保最佳兼容性：
+本分支验证时使用的是 **LeRobot v0.5.2**。推荐在独立的 conda 环境中安装：
+
+```bash
+conda activate lerobot
+cd /path/to/lerobot
+pip install -e ".[feetech]"
+```
+
+也可以使用 D-Robotics 提供的 LeRobot 仓库搭建开发环境，以确保最佳兼容性：
 👉 **https://github.com/D-Robotics/lerobot**
 ```bash
     git clone https://github.com/D-Robotics/lerobot.git
@@ -28,23 +37,11 @@
     git clone https://github.com/D-Robotics/rdk_LeRobot_tools.git
     pip install -e ".[feetech]"
 ```
-此版本兼容 v2.1 数据集，本仓库的导出工具只要能加载 v2.1 数据集的历史版本均可工作。
-
-或者clone官方仓库后切换到对应的旧版本分支：
-```bash
-    git clone https://github.com/huggingface/lerobot.git
-    cd lerobot
-    git checkout 8cfab3882480bdde38e42d93a9752de5ed42cae2  # 切换到 v2.1 版本对应的 commit
-    git clone https://github.com/D-Robotics/rdk_LeRobot_tools.git
-    pip install -e ".[feetech]"
-```
-
-**特别注意：** LeRobot 较新版本对旧代码可能存在兼容性问题，导致报错。D-Robotics fork 的 LeRobot 仓库已将 `datasets` 库版本锁定。如果您是直接 Clone 官方 LeRobot 仓库并切换到旧版，可能需要手动将 `datasets` 库降级到 `datasets==2.19.0` 以避免兼容性问题。
 
 需安装以下 Python 包用于 ONNX 导出和处理：
 
 ```bash
-pip install onnx onnxsim termcolor tqdm
+pip install onnx onnxsim termcolor tqdm safetensors
 ```
 
 *注意：模型编译（ONNX -> HBM）需要在地瓜机器人提供的 Docker 工具链环境（OpenExplorer）中进行。*
@@ -78,8 +75,13 @@ pip install onnx onnxsim termcolor tqdm
     *   `dataset.root`: 训练时使用的数据集根目录。
     *   `act_path`: 训练好的 ACT 模型检查点路径 (包含 `config.json` 和 `model.safetensors`)。
     *   `type`: BPU 平台类型。脚本会自动根据此类型调整编译参数。
-        *   `nash-e` / `nash-m` / `nash-p`: 适用于 RDK S100 等 Nash 架构。
+        *   `nash-e` / `nash-m` / `nash-p`: 适用于 Nash 架构；S600 使用 `nash-p`。
         *   `bayes` / `bayes-e`: 适用于 RDK X5 等 Bayes 架构。
+
+    S600 / SO100 ACT 可以参考 `bpu_export_config_s600_calfix.yaml`。该配置使用：
+    *   `type: "nash-p"`
+    *   `cal_num: 100`
+    *   `export_path: ".../bpu_export_act_so100_s600_calfix"`
 
 2.  **运行导出脚本**:
     ```bash
@@ -87,7 +89,12 @@ pip install onnx onnxsim termcolor tqdm
     ```
     运行成功后，会在 `bpu_export_output` (或配置指定的目录) 下生成 ONNX 模型、校准数据和编译脚本 (`build_all.sh`)。
 
-    **重要提示：** 针对较新版本的 LeRobot (v2.1)，为避免导出时缺少关键字键 (`policy.type` 等)，请务必放开 `bpu_export_config.yaml` 中对应 `policy` 和 `dataset` 部分的注释。具体请参考 `bpu_export_config.yaml` 模板文件中的说明。
+    S600 示例：
+    ```bash
+    python export_bpu_actpolicy.py --config bpu_export_config_s600_calfix.yaml
+    ```
+
+    **重要提示：** 导出脚本会从 LeRobot v0.5.2 checkpoint 的 processor safetensors 中读取图像、state 和 action 的归一化参数。图像校准数据会先确保输入是 `0..1` float，再做 `(image - mean) / std`，从而和板端运行时的 `uint8 -> /255.0 -> normalize` 保持一致。
 
 ### 第二步：编译 BPU 模型
 
@@ -96,6 +103,16 @@ pip install onnx onnxsim termcolor tqdm
 ```bash
 cd bpu_export_output
 bash build_all.sh
+```
+
+S600 推荐使用 OE 3.7.0 S100/S600 Docker 工具链，例如：
+
+```bash
+docker run --rm \
+  -v /path/to/bpu_export_act_so100_s600_calfix:/workspace \
+  -w /workspace \
+  registry.d-robotics.cc/deliver/ai_toolchain_ubuntu_22_s100_s600_cpu:v3.7.0 \
+  bash build_all.sh
 ```
 
 编译完成后，`bpu_export_output` 目录下会生成一个 **`bpu_output`** 文件夹。这个文件夹包含了：
@@ -159,3 +176,5 @@ bash build_all.sh
 
 *   **模型兼容性**: 板端运行必须使用经过 OE 工具链量化并编译的 `.hbm` / `.bin` 模型，不能直接运行 ONNX 或 PyTorch 模型。
 *   **机器人配置**: `bpu_control_robot.py` 默认连接 `so101` 机器人。如需更改，请修改代码中的 `make_robot("so101")`。
+*   **S600 校准一致性**: 对于 LeRobot v0.5.2 的 ACT 模型，图像 calibration 必须与运行时预处理一致，即 `uint8 -> /255.0 -> (image - mean) / std`。如果直接用 `0..255` 图像做 ImageNet normalize，会导致 Vision/Transformer 量化范围错误，BPU 输出动作可能严重偏离 PyTorch/ONNX。
+*   **ACT chunk**: ACT 一次输出 100 步 action chunk，板端不要为了规避问题传 `--n-action-steps 1`。
