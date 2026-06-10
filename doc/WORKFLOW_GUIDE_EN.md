@@ -1,7 +1,7 @@
 English| [简体中文](./WORKFLOW_GUIDE_CN.md)
 # LeRobot + D-Robotics RDK End-to-End Workflow Guide (Detailed)
 
-This document, based on the [D-Robotics/lerobot](https://github.com/D-Robotics/lerobot) repository and this toolchain, provides detailed steps to implement an ACT policy on the **SO-101 Robot Arm** from scratch and deploy it to **RDK S100/S100P**.
+This document, based on the [D-Robotics/lerobot](https://github.com/D-Robotics/lerobot) repository and this toolchain, provides detailed steps to implement an ACT policy on the **SO-101 Robot Arm** from scratch and deploy it to **RDK S600**. For SO-101 assembly, motor setup, and calibration, also refer to the official Hugging Face [SO-101 documentation](https://huggingface.co/docs/lerobot/so101).
 
 <div align="center">
   <table>
@@ -18,9 +18,9 @@ This document, based on the [D-Robotics/lerobot](https://github.com/D-Robotics/l
   </table>
 </div>
 
-> **🚀 Core Recommendation: RDK S100/S100P Full-Stack Solution**
+> **🚀 Core Recommendation: RDK S600 Full-Stack Solution**
 > 
-> **RDK S100/S100P is not just an inference terminal; it is a full-featured edge computing platform!**
+> **RDK S600 is not just an inference terminal; it is a full-featured edge computing platform!**
 > Apart from model training (which requires a GPU), you can complete all the following tasks directly on the RDK:
 > *   ✅ **Hardware Calibration**
 > *   ✅ **Teleoperation Testing**
@@ -30,9 +30,10 @@ This document, based on the [D-Robotics/lerobot](https://github.com/D-Robotics/l
 > We strongly recommend leveraging the portability of the RDK to connect the robot arm directly for data collection and debugging.
 
 > **Version Statement**:
-> *   **Repository**: It is strictly recommended to use [D-Robotics/lerobot](https://github.com/D-Robotics/lerobot).
-> *   **Hardware**: This document is verified only for **RDK S100** or **RDK S100P** + **SO-101 Robot Arm**. Other hardware platforms (like RDK X5) are not fully verified.
-> *   **Stability**: This is the Stable version, compatible with LeRobot v2.1 dataset format.
+> *   **LeRobot**: This branch was verified with LeRobot v0.5.2.
+> *   **Key Python packages**: `datasets 4.8.5`, `torch 2.7.1+cu126`, `onnxruntime 1.26.0`, `onnx 1.21.0`, `numpy 2.2.6`.
+> *   **Hardware**: This document targets **RDK S600 + SO-101/SO100 single-arm ACT**.
+> *   **BPU target**: S600 uses `nash-p`; OE 3.7.0 S100/S600 toolchain is recommended.
 
 ---
 
@@ -53,13 +54,14 @@ cd lerobot
 git clone https://github.com/D-Robotics/rdk_LeRobot_tools.git
 
 # 2. Install dependencies
-pip install -e .
-pip install onnx onnxsim termcolor tqdm
+conda activate lerobot
+pip install -e ".[feetech]"
+pip install onnx onnxsim termcolor tqdm safetensors
 ```
 
 ### 1.2 RDK Board Environment (For Collection & Inference)
 
-SSH into RDK S100/S100P:
+SSH into RDK S600:
 
 ```bash
 # 1. Clone D-Robotics LeRobot as well
@@ -75,7 +77,7 @@ pip install hbm-runtime
 
 ## 2. Hardware Configuration & Assembly (SO-101)
 
-**Tip: Operations in this chapter can be performed on the development machine or directly on the RDK S100 via screen or SSH!**
+**Tip: Operations in this chapter can be performed on the development machine or directly on the RDK S600 via screen or SSH!**
 
 ### 2.1 Set Motor IDs
 
@@ -83,16 +85,19 @@ Before assembly, you need to set the ID for each motor. The SO-101 requires 6 mo
 
 **Steps:**
 1.  Connect **only one** motor to the adapter board at a time.
-2.  Run the following command to set the ID (e.g., set to 1):
+2.  Use the LeRobot v0.5.2 motor setup command and follow the prompts to connect each motor one by one. Follower example:
     ```bash
-    python lerobot/scripts/configure_motor.py \
-      --port /dev/ttyUSB0 \
-      --brand feetech \
-      --model sts3215 \
-      --baudrate 1000000 \
-      --ID 1
+    lerobot-setup-motors \
+      --robot.type=so101_follower \
+      --robot.port=/dev/ttyACM0
     ```
-3.  Unplug the current motor, plug in the new one, and repeat the steps to set IDs to 2, 3, 4, 5, 6.
+3.  Leader example:
+    ```bash
+    lerobot-setup-motors \
+      --teleop.type=so101_leader \
+      --teleop.port=/dev/ttyACM1
+    ```
+4.  Follow the CLI prompts, connecting only the requested motor each time, until motor IDs and baudrate are configured.
 
 **Demo Video:**
 <video controls width="100%" src="https://github.com/user-attachments/assets/b31c115f-e706-4dcd-b7f1-4535da62416d" type="video/mp4"></video>
@@ -136,36 +141,21 @@ Please refer to the [Official SO-ARM100 Guide](https://github.com/TheRobotStudio
 *   **Wiring**:
     <video controls width="100%" src="https://github.com/user-attachments/assets/4c2cacfd-9276-4ee4-8bf2-ba2492667b78" type="video/mp4"></video>
 
-### 2.3 Find Ports & Modify Config (Recommended on RDK S100)
+### 2.3 Find Ports (Recommended on RDK S600)
 
-Connect the assembled Leader and Follower arms to the USB ports of RDK S100.
+Connect the assembled Leader and Follower arms to the USB ports of RDK S600. LeRobot v0.5.2 recommends:
 
 ```bash
-python lerobot/scripts/find_motors_bus_port.py
+lerobot-find-port
 ```
-Note the output ports, e.g., `/dev/ttyUSB0` and `/dev/ttyUSB1`.
+Follow the unplug/replug prompts and record the detected ports, e.g. `/dev/ttyACM0` and `/dev/ttyACM1`. On Linux, if serial permissions are insufficient, temporarily run:
 
-**Modify Config File**:
-Find the `So101RobotConfig` class in `lerobot/common/robot_devices/robots/configs.py`, or directly modify the YAML config `lerobot/configs/robot/so101.yaml`.
-
-```python
-    leader_arms: dict[str, MotorsBusConfig] = field(
-        default_factory=lambda: {
-            "main": FeetechMotorsBusConfig(
-                port="/dev/ttyUSB0",  <-- Change to Leader port
-                motors={...},
-            ),
-        }
-    )
-    follower_arms: dict[str, MotorsBusConfig] = field(
-        default_factory=lambda: {
-            "main": FeetechMotorsBusConfig(
-                port="/dev/ttyUSB1",  <-- Change to Follower port
-                motors={...},
-            ),
-        }
-    )
+```bash
+sudo chmod 666 /dev/ttyACM0
+sudo chmod 666 /dev/ttyACM1
 ```
+
+Pass the port via command-line options in collection or inference scripts. This tool's `bpu_control_robot.py` defaults to `--robot-port /dev/ttyACM0`.
 
 **Demo Video:**
 <video controls width="100%" src="https://github.com/user-attachments/assets/fc45d756-31bb-4a61-b973-a87d633d08a7" type="video/mp4"></video>
@@ -174,8 +164,8 @@ Find the `So101RobotConfig` class in `lerobot/common/robot_devices/robots/config
 
 ## 3. Calibration
 
-**Recommended to run directly on RDK S100.**
-Calibration is crucial for synchronizing Leader and Follower arms. **Must be run when the robot arm is in the Zero position (fully extended straight).**
+**Recommended to run directly on RDK S600.**
+Calibration is crucial for synchronizing arms and making the trained policy transferable. LeRobot v0.5.2 uses `lerobot-calibrate`; follow the prompts to place the arm in the requested poses.
 
 ### 3.1 Manual Calibration (Follower)
 
@@ -186,11 +176,9 @@ Move the follower arm to the following positions sequentially:
 | <img src="imgs/follower_middle.webp" width="100%"/> | <img src="imgs/follower_zero.webp" width="100%"/> | <img src="imgs/follower_rotated.webp" width="100%"/> | <img src="imgs/follower_rest.webp" width="100%"/> |
 
 ```bash
-python lerobot/scripts/control_robot.py \
-  --robot.type=so101 \
-  --robot.cameras='{}' \
-  --control.type=calibrate \
-  --control.arms='["main_follower"]'
+lerobot-calibrate \
+  --robot.type=so101_follower \
+  --robot.port=/dev/ttyACM0
 ```
 
 ### 3.2 Manual Calibration (Leader)
@@ -202,18 +190,16 @@ Move the leader arm to the following positions sequentially:
 | <img src="imgs/leader_middle.webp" width="100%"/> | <img src="imgs/leader_zero.webp" width="100%"/> | <img src="imgs/leader_rotated.webp" width="100%"/> | <img src="imgs/leader_rest.webp" width="100%"/> |
 
 ```bash
-python lerobot/scripts/control_robot.py \
-  --robot.type=so101 \
-  --robot.cameras='{}' \
-  --control.type=calibrate \
-  --control.arms='["main_leader"]'
+lerobot-calibrate \
+  --teleop.type=so101_leader \
+  --teleop.port=/dev/ttyACM1
 ```
 
 ---
 
 ## 4. Camera Configuration
 
-**Recommended to run directly on RDK S100.**
+**Recommended to run directly on RDK S600.**
 
 ### 4.1 Find Camera Indices
 
@@ -250,37 +236,40 @@ Update in `lerobot/common/robot_devices/robots/configs.py` or `so101.yaml`:
 
 ## 5. Data Collection (Data Collection)
 
-**Recommended to run directly on RDK S100.**
+**Recommended to run directly on RDK S600.**
 Collecting high-quality demonstration data is key to training success. It is recommended to collect **50+** successful trajectories.
 
 ### 5.1 Run Collection Script
 
 ```bash
-python lerobot/scripts/control_robot.py \
-  --robot.type=so101 \
-  --control.type=record \
-  --control.fps=30 \
-  --control.root=data/so101_pick_place \
-  --control.repo_id=my_id/so101_pick_place \
-  --control.tags='["so101","tutorial"]' \
-  --control.warmup-time-s=5 \
-  --control.episode-time-s=40 \
-  --control.reset-time-s=5 \
-  --control.num-episodes=50
+lerobot-record \
+  --robot.type=so101_follower \
+  --robot.port=/dev/ttyACM0 \
+  --robot.cameras="{front: {type: opencv, index_or_path: 0, width: 640, height: 480, fps: 30}}" \
+  --robot.id=s600_follower \
+  --teleop.type=so101_leader \
+  --teleop.port=/dev/ttyACM1 \
+  --teleop.id=s600_leader \
+  --dataset.repo_id=my_id/so101_pick_place \
+  --dataset.num_episodes=50 \
+  --dataset.single_task="Pick and place the object" \
+  --dataset.streaming_encoding=true \
+  --dataset.encoder_threads=2 \
+  --display_data=true
 ```
 
 ### 5.2 Key Parameters
 
 | Parameter | Meaning | Recommendation/Note |
 | :--- | :--- | :--- |
-| `--robot.type` | Robot type | `so101` |
-| `--fps` | Frame rate | `30` (Standard for ACT) |
-| `--root` | Local save path | E.g., `data/task_name` |
-| `--repo-id` | Hugging Face Repo ID | Format `user/dataset_name` |
-| `--warmup-time-s` | Warmup time | `5`s. Time to adjust pose before recording |
-| `--episode-time-s` | Max duration per episode | `30-40`s for simple tasks |
-| `--reset-time-s` | Reset time | `5`s. Time to reset object after recording |
-| `--num-episodes` | Total episodes | `50+` recommended |
+| `--robot.type` | Follower arm type | `so101_follower` |
+| `--robot.port` | Follower serial port | Get it with `lerobot-find-port` |
+| `--teleop.type` | Leader arm type | `so101_leader` |
+| `--teleop.port` | Leader serial port | Get it with `lerobot-find-port` |
+| `--robot.cameras` | Camera configuration | S600 USB cameras usually use `opencv` + `index_or_path` |
+| `--dataset.repo_id` | Hugging Face repo ID | Format `user/dataset_name`; also used as local dataset metadata |
+| `--dataset.num_episodes` | Total episodes | `50+` recommended |
+| `--dataset.single_task` | Task description | Keep it consistent with the actual collection task |
 
 ### 5.3 Keyboard Controls
 
@@ -322,7 +311,7 @@ Here is an example modification:
 **Standard Start Command**:
 
 ```bash
-python lerobot/scripts/train.py \
+lerobot-train \
   --dataset.repo_id=${HF_USER}/so101_test \
   --dataset.root=data/so101_pick_place \
   --policy.type=act \
@@ -344,7 +333,7 @@ python lerobot/scripts/train.py \
 If training is interrupted, you can resume by specifying the checkpoint's configuration file path. For example, to resume from the `last` checkpoint of the `act_so101_test` task:
 
 ```bash
-python lerobot/scripts/train.py \
+lerobot-train \
   --config_path=outputs/train/act_so101_test/checkpoints/last/pretrained_model/train_config.json \
   --resume=true
 ```
@@ -361,22 +350,32 @@ python lerobot/scripts/train.py \
 
 ### 7.1 Configure Export Parameters
 
-Edit `rdk_LeRobot_tools/bpu_export_config.yaml`:
+For S600 / SO100 ACT, use `rdk_LeRobot_tools/bpu_export_config_s600_calfix.yaml` as a reference:
 
 ```yaml
 dataset:
-  root: "data/so101_pick_place"
-act_path: "outputs/train/act_so101/checkpoints/050000/pretrained_model"
-type: "nash-e" # RDK S100/S100P
+  repo_id: "local/so100_demo"
+  root: "/path/to/datasets/so100_demo"
+policy:
+  type: "act"
+  device: "cpu"
+act_path: "/path/to/outputs/train/act_so100/checkpoints/008000/pretrained_model"
+export_path: "/path/to/bpu_export_act_so100_s600_calfix"
+cal_num: 100
+onnx_sim: true
+type: "nash-p"       # RDK S600
+combine_jobs: 6
 ```
+
+This config generates calibration data aligned with S600 runtime preprocessing: image tensors are converted from `0..255` to `0..1` before `(image - mean) / std`.
 
 ### 7.2 Export ONNX
 
 ```bash
 # 1. Export ONNX (Development Machine)
-python export_bpu_actpolicy.py --config bpu_export_config.yaml
+python export_bpu_actpolicy.py --config bpu_export_config_s600_calfix.yaml
 ```
-*Success indicator: A `bpu_export_output` directory is generated, containing `build_all.sh` and calibration data.*
+*Success indicator: The directory specified by `export_path` contains `build_all.sh`, ONNX files, and calibration data.*
 
 ### 7.3 Compile BPU Model (OpenExplorer Docker Environment)
 
@@ -388,11 +387,11 @@ python export_bpu_actpolicy.py --config bpu_export_config.yaml
         sudo docker run --rm hello-world
         ```
 
-2.  **Get and Load Offline Image** (Recommend CPU Image, select according to RDK model)
+2.  **Get and Load Offline Image** (for S600, use the OE 3.7.0 S100/S600 CPU image)
     *   Download page: [https://developer.d-robotics.cc/rdk_doc/rdk_s/Advanced_development/toolchain_development/overview#docker-%E9%95%9C%E5%83%8F](https://developer.d-robotics.cc/rdk_doc/rdk_s/Advanced_development/toolchain_development/overview#docker-%E9%95%9C%E5%83%8F)
     *   Load image:
         ```bash
-        sudo docker load -i ai_toolchain_ubuntu_22_s100_xxx.tar
+        sudo docker load -i ai_toolchain_ubuntu_22_s100_s600_cpu_v3.7.0.tar
         ```
 
 3.  **Start Container** (Recommended Parameters)
@@ -407,15 +406,15 @@ python export_bpu_actpolicy.py --config bpu_export_config.yaml
          <docker-image-name> /bin/bash
         ```
     *   **Common Replacements**:
-        - `<docker-image-name>` Replace with the loaded image name (check with `docker images`).
+        - Recommended S600 image: `registry.d-robotics.cc/deliver/ai_toolchain_ubuntu_22_s100_s600_cpu:v3.7.0`
 
 4.  **Compile Model Inside Container**
     *   Enter the mounted directory and execute the build script:
         ```bash
-        cd /workspace/bpu_export_output
+        cd /workspace/bpu_export_act_so100_s600_calfix
         bash build_all.sh
         ```
-    *   Compilation output is usually located in a subdirectory under `bpu_export_output/` (confirm via script output).
+    *   Compilation output is usually located under `bpu_output/` and each submodel directory inside `export_path` (confirm via script output).
 
 5.  **Common Issues & Troubleshooting**
     *   **Permission Issues**: Permission errors when copying files back to the host; check file ownership or use `sudo chown -R`.
@@ -426,16 +425,12 @@ python export_bpu_actpolicy.py --config bpu_export_config.yaml
 
 **Example Full Workflow:**
 ```bash
-# 1. Load image (Host)
-sudo docker load -i ai_toolchain_ubuntu_22_s100_xxx.tar
-
-# 2. Start container and mount current project directory (Host)
-sudo docker run -it --rm --network host --shm-size=15g \
-  -v "$(pwd)":/workspace --workdir /workspace <docker-image-name> /bin/bash
-
-# 3. Compile inside container (Container)
-cd /workspace/bpu_export_output
-bash build_all.sh
+# Run a one-shot compile command on the host
+docker run --rm \
+  -v /path/to/bpu_export_act_so100_s600_calfix:/workspace \
+  -w /workspace \
+  registry.d-robotics.cc/deliver/ai_toolchain_ubuntu_22_s100_s600_cpu:v3.7.0 \
+  bash build_all.sh
 ```
 
 Expected artifacts:
@@ -458,10 +453,10 @@ After completion, copy the generated `bpu_output` folder to the RDK board for de
 
 ---
 
-## 8. Board Deployment & Inference (RDK S100/S100P)
+## 8. Board Deployment & Inference (RDK S600)
 
 ### Prerequisites
-1.  Installed LeRobot from `D-Robotics/lerobot` repository and `hbm_runtime`.
+1.  Installed LeRobot from `D-Robotics/lerobot` repository and `hbm-runtime`.
 2.  Transferred the **`bpu_output`** folder (containing quantized `.hbm` models and calibration parameters) to the board.
 3.  **Hardware Config**: Ensure **robot arm ports**, **camera ports**, and **calibration files** are correctly configured by referring to the Data Collection and Teleoperation steps above.
 
@@ -477,9 +472,14 @@ This is the final step to deploy the trained model to the RDK.
     
     python bpu_control_robot.py \
       --bpu-act-path ../bpu_output \
+      --robot-port /dev/ttyACM0 \
+      --camera-index 0 \
+      --camera-name front \
       --fps 30 \
       --inference-time 60
     ```
+
+    ACT emits a 100-step action chunk in one inference. The script auto-detects `n_action_steps` from `new_actions.npy`. Do not pass `--n-action-steps 1` for debugging, because that changes ACT runtime semantics.
 
 ### Troubleshooting
 

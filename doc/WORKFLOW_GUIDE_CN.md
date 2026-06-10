@@ -1,7 +1,7 @@
 [English](./WORKFLOW_GUIDE_EN.md) | 简体中文
 # LeRobot + 地瓜机器人 RDK 全流程落地指南
 
-本文档基于 [D-Robotics/lerobot](https://github.com/D-Robotics/lerobot) 仓库及本工具链，提供从零开始在 **SO-101 机械臂** 上实现 ACT 策略并部署到 **RDK S100/S100P** 的详细步骤。
+本文档基于 [D-Robotics/lerobot](https://github.com/D-Robotics/lerobot) 仓库及本工具链，提供从零开始在 **SO-101 机械臂** 上实现 ACT 策略并部署到 **RDK S600** 的详细步骤。SO-101 机械臂装配、电机设置和校准流程也可参考 Hugging Face 官方 [SO-101 文档](https://huggingface.co/docs/lerobot/so101)。
 
 <div align="center">
   <table>
@@ -18,9 +18,9 @@
   </table>
 </div>
 
-> **🚀 核心推荐：RDK S100/S100P 全流程方案**
+> **🚀 核心推荐：RDK S600 全流程方案**
 > 
-> **RDK S100/S100P 不仅仅是一个推理终端，它是全功能的边缘计算平台！**
+> **RDK S600 不仅仅是一个推理终端，它是全功能的边缘计算平台！**
 > 除了模型训练（需要 GPU）外，您可以直接在 RDK 上完成以下所有工作：
 > *   ✅ **硬件标定** (Calibration)
 > *   ✅ **遥操作测试** (Teleoperation)
@@ -28,6 +28,14 @@
 > *   ✅ **BPU 模型推理** (Inference)
 >
 > 我们强烈推荐您利用 RDK 的便携性，直接连接机械臂进行数据采集和调试。
+
+---
+
+> **版本说明**：
+> *   **LeRobot**: 本分支按 LeRobot v0.5.2 验证。
+> *   **Python 关键依赖**: `datasets 4.8.5`, `torch 2.7.1+cu126`, `onnxruntime 1.26.0`, `onnx 1.21.0`, `numpy 2.2.6`。
+> *   **硬件**: 本文档面向 **RDK S600 + SO-101/SO100 单臂 ACT**。
+> *   **BPU 编译目标**: S600 使用 `nash-p`，推荐 OE 3.7.0 S100/S600 工具链。
 
 ---
 
@@ -48,13 +56,14 @@ cd lerobot
 git clone https://github.com/D-Robotics/rdk_LeRobot_tools.git
 
 # 2. 安装依赖
-pip install -e .
-pip install onnx onnxsim termcolor tqdm
+conda activate lerobot
+pip install -e ".[feetech]"
+pip install onnx onnxsim termcolor tqdm safetensors
 ```
 
 ### 1.2 RDK 板端环境 (用于采集与推理)
 
-SSH 登录到 RDK S100/S100P：
+SSH 登录到 RDK S600：
 
 ```bash
 # 1. 同样克隆 D-Robotics 的 LeRobot
@@ -70,7 +79,7 @@ pip install hbm-runtime
 
 ## 2. 硬件配置与组装 (SO-101)
 
-**提示：本章节操作可以在开发机上进行，也可以直接在 RDK S100 上连接屏幕或 SSH 进行！**
+**提示：本章节操作可以在开发机上进行，也可以直接在 RDK S600 上连接屏幕或 SSH 进行！**
 
 ### 2.1 设置电机 ID (Set motor IDs)
 
@@ -78,16 +87,19 @@ pip install hbm-runtime
 
 **操作步骤：**
 1.  每次只连接**一个**电机到转接板。
-2.  运行以下命令设置 ID（例如设置为 1）：
+2.  使用 LeRobot v0.5.2 的电机设置命令，按提示逐个连接电机并设置 ID。Follower 示例：
     ```bash
-    python lerobot/scripts/configure_motor.py \
-      --port /dev/ttyUSB0 \
-      --brand feetech \
-      --model sts3215 \
-      --baudrate 1000000 \
-      --ID 1
+    lerobot-setup-motors \
+      --robot.type=so101_follower \
+      --robot.port=/dev/ttyACM0
     ```
-3.  拔下当前电机，插上新电机，重复步骤将 ID 设置为 2, 3, 4, 5, 6。
+3.  Leader 示例：
+    ```bash
+    lerobot-setup-motors \
+      --teleop.type=so101_leader \
+      --teleop.port=/dev/ttyACM1
+    ```
+4.  根据命令行提示，每次只连接指定电机，依次完成 1-6 号电机的 ID 和波特率设置。
 
 **操作演示视频：**
 <video controls width="100%" src="https://github.com/user-attachments/assets/b31c115f-e706-4dcd-b7f1-4535da62416d" type="video/mp4"></video>
@@ -129,36 +141,21 @@ pip install hbm-runtime
 *   **Wiring (接线)**:
     <video controls width="100%" src="https://github.com/user-attachments/assets/4c2cacfd-9276-4ee4-8bf2-ba2492667b78" type="video/mp4"></video>
 
-### 2.3 查找端口与修改配置 (RDK S100 推荐)
+### 2.3 查找端口 (RDK S600 推荐)
 
-将组装好的机械臂连接到 RDK S100 的 USB 口。
+将组装好的机械臂连接到 RDK S600 的 USB 口。LeRobot v0.5.2 推荐使用：
 
 ```bash
-python lerobot/scripts/find_motors_bus_port.py
+lerobot-find-port
 ```
-记下输出的端口号，例如 `/dev/ttyUSB0` 和 `/dev/ttyUSB1`。
+按提示拔插 USB 后记录端口号，例如 `/dev/ttyACM0`、`/dev/ttyACM1`。Linux 上如果串口权限不足，可临时执行：
 
-**修改配置文件**：
-找到 `lerobot/common/robot_devices/robots/configs.py` 中的 `So101RobotConfig` 类，或者直接修改 YAML 配置 `lerobot/configs/robot/so101.yaml`。
-
-```python
-    leader_arms: dict[str, MotorsBusConfig] = field(
-        default_factory=lambda: {
-            "main": FeetechMotorsBusConfig(
-                port="/dev/ttyUSB0",  <-- 修改为主手端口
-                motors={...},
-            ),
-        }
-    )
-    follower_arms: dict[str, MotorsBusConfig] = field(
-        default_factory=lambda: {
-            "main": FeetechMotorsBusConfig(
-                port="/dev/ttyUSB1",  <-- 修改为从手端口
-                motors={...},
-            ),
-        }
-    )
+```bash
+sudo chmod 666 /dev/ttyACM0
+sudo chmod 666 /dev/ttyACM1
 ```
+
+后续运行采集或推理脚本时，通过命令行参数传入端口；本工具的 `bpu_control_robot.py` 默认使用 `--robot-port /dev/ttyACM0`。
 
 **操作演示视频：**
 <video controls width="100%" src="https://github.com/user-attachments/assets/fc45d756-31bb-4a61-b973-a87d633d08a7" type="video/mp4"></video>
@@ -167,8 +164,8 @@ python lerobot/scripts/find_motors_bus_port.py
 
 ## 3. 校准 (Calibration)
 
-**推荐在 RDK S100 上直接运行。**
-校准是保证主从手同步的关键。**必须在机械臂处于零位（完全伸直）时运行**。
+**推荐在 RDK S600 上直接运行。**
+校准是保证主从手同步和模型迁移有效的关键。LeRobot v0.5.2 的 SO-101 校准使用 `lerobot-calibrate` 命令，按提示摆放机械臂姿态。
 
 ### 3.1 手动校准从手 (Follower)
 
@@ -179,11 +176,9 @@ python lerobot/scripts/find_motors_bus_port.py
 | <img src="imgs/follower_middle.webp" width="100%"/> | <img src="imgs/follower_zero.webp" width="100%"/> | <img src="imgs/follower_rotated.webp" width="100%"/> | <img src="imgs/follower_rest.webp" width="100%"/> |
 
 ```bash
-python lerobot/scripts/control_robot.py \
-  --robot.type=so101 \
-  --robot.cameras='{}' \
-  --control.type=calibrate \
-  --control.arms='["main_follower"]'
+lerobot-calibrate \
+  --robot.type=so101_follower \
+  --robot.port=/dev/ttyACM0
 ```
 
 ### 3.2 手动校准主手 (Leader)
@@ -195,18 +190,16 @@ python lerobot/scripts/control_robot.py \
 | <img src="imgs/leader_middle.webp" width="100%"/> | <img src="imgs/leader_zero.webp" width="100%"/> | <img src="imgs/leader_rotated.webp" width="100%"/> | <img src="imgs/leader_rest.webp" width="100%"/> |
 
 ```bash
-python lerobot/scripts/control_robot.py \
-  --robot.type=so101 \
-  --robot.cameras='{}' \
-  --control.type=calibrate \
-  --control.arms='["main_leader"]'
+lerobot-calibrate \
+  --teleop.type=so101_leader \
+  --teleop.port=/dev/ttyACM1
 ```
 
 ---
 
 ## 4. 摄像头配置 (Cameras)
 
-**推荐在 RDK S100 上直接运行。**
+**推荐在 RDK S600 上直接运行。**
 
 ### 4.1 查找摄像头索引
 
@@ -243,37 +236,40 @@ python lerobot/common/robot_devices/cameras/opencv.py \
 
 ## 5. 数据采集 (Data Collection)
 
-**推荐在 RDK S100 上直接运行。**
+**推荐在 RDK S600 上直接运行。**
 收集高质量的演示数据是训练成功的关键。建议采集 **50 条** 以上的成功轨迹。
 
 ### 5.1 运行采集脚本
 
 ```bash
-python lerobot/scripts/control_robot.py \
-  --robot.type=so101 \
-  --control.type=record \
-  --control.fps=30 \
-  --control.root=data/so101_pick_place \
-  --control.repo_id=my_id/so101_pick_place \
-  --control.tags='["so101","tutorial"]' \
-  --control.warmup-time-s=5 \
-  --control.episode-time-s=40 \
-  --control.reset-time-s=5 \
-  --control.num-episodes=50
+lerobot-record \
+  --robot.type=so101_follower \
+  --robot.port=/dev/ttyACM0 \
+  --robot.cameras="{front: {type: opencv, index_or_path: 0, width: 640, height: 480, fps: 30}}" \
+  --robot.id=s600_follower \
+  --teleop.type=so101_leader \
+  --teleop.port=/dev/ttyACM1 \
+  --teleop.id=s600_leader \
+  --dataset.repo_id=my_id/so101_pick_place \
+  --dataset.num_episodes=50 \
+  --dataset.single_task="Pick and place the object" \
+  --dataset.streaming_encoding=true \
+  --dataset.encoder_threads=2 \
+  --display_data=true
 ```
 
 ### 5.2 关键参数详解
 
 | 参数 | 含义 | 推荐值/说明 |
 | :--- | :--- | :--- |
-| `--robot.type` | 机器人类型 | `so101` |
-| `--fps` | 采集帧率 | `30` (ACT 模型标准帧率) |
-| `--root` | 数据本地保存路径 | 建议包含任务名称，如 `data/task_name` |
-| `--repo-id` | Hugging Face 仓库ID | 格式 `user/dataset_name`，用于上传分享 |
-| `--warmup-time-s` | 预热时间 | `5`秒。开始录制前给您调整姿态的时间 |
-| `--episode-time-s` | 单条数据最大时长 | 根据任务难度设定，简单抓取 `30-40`秒足够 |
-| `--reset-time-s` | 复位时间 | `5`秒。每条录制结束后，给您将物体归位的时间 |
-| `--num-episodes` | 计划采集总条数 | `50` 条起步，多多益善 |
+| `--robot.type` | 从手机械臂类型 | `so101_follower` |
+| `--robot.port` | 从手串口 | 通过 `lerobot-find-port` 获取 |
+| `--teleop.type` | 主手机械臂类型 | `so101_leader` |
+| `--teleop.port` | 主手串口 | 通过 `lerobot-find-port` 获取 |
+| `--robot.cameras` | 相机配置 | S600 USB 摄像头一般使用 `opencv` + `index_or_path` |
+| `--dataset.repo_id` | Hugging Face 仓库 ID | 格式 `user/dataset_name`，本地训练时也用于数据集元信息 |
+| `--dataset.num_episodes` | 计划采集总条数 | `50` 条起步，多多益善 |
+| `--dataset.single_task` | 当前数据集任务描述 | 要与实际采集任务一致 |
 
 ### 5.3 键盘控制 (Keyboard Shortcuts)
 
@@ -319,7 +315,7 @@ python lerobot/scripts/control_robot.py \
 **标准启动命令**:
 
 ```bash
-python lerobot/scripts/train.py \
+lerobot-train \
   --dataset.repo_id=${HF_USER}/so101_test \
   --dataset.root=data/so101_pick_place \
   --policy.type=act \
@@ -341,7 +337,7 @@ python lerobot/scripts/train.py \
 如果训练中断，可以通过指定 checkpoint 的配置文件路径来恢复训练。例如，从 `act_so101_test` 任务的最新 checkpoint (`last`) 恢复：
 
 ```bash
-python lerobot/scripts/train.py \
+lerobot-train \
   --config_path=outputs/train/act_so101_test/checkpoints/last/pretrained_model/train_config.json \
   --resume=true
 ```
@@ -358,22 +354,32 @@ python lerobot/scripts/train.py \
 
 ### 7.1 配置导出参数
 
-编辑 `rdk_LeRobot_tools/bpu_export_config.yaml`：
+S600 / SO100 ACT 可直接参考 `rdk_LeRobot_tools/bpu_export_config_s600_calfix.yaml`：
 
 ```yaml
 dataset:
-  root: "data/so101_pick_place"
-act_path: "outputs/train/act_so101/checkpoints/050000/pretrained_model"
-type: "nash-e" # RDK S100/S100P
+  repo_id: "local/so100_demo"
+  root: "/path/to/datasets/so100_demo"
+policy:
+  type: "act"
+  device: "cpu"
+act_path: "/path/to/outputs/train/act_so100/checkpoints/008000/pretrained_model"
+export_path: "/path/to/bpu_export_act_so100_s600_calfix"
+cal_num: 100
+onnx_sim: true
+type: "nash-p"       # RDK S600
+combine_jobs: 6
 ```
+
+该配置会生成与 S600 运行时一致的校准数据：图像先从 `0..255` 缩放到 `0..1`，再执行 `(image - mean) / std`。
 
 ### 7.2 导出 ONNX
 
 ```bash
 # 1. 导出 ONNX (开发机)
-python export_bpu_actpolicy.py --config bpu_export_config.yaml
+python export_bpu_actpolicy.py --config bpu_export_config_s600_calfix.yaml
 ```
-*成功标志：生成 `bpu_export_output` 目录，内含 `build_all.sh` 和校准数据。*
+*成功标志：`export_path` 指定的目录中生成 `build_all.sh`、ONNX 文件和校准数据。*
 
 ### 7.3 编译 BPU 模型 (OpenExplorer Docker 环境)
 
@@ -385,11 +391,11 @@ python export_bpu_actpolicy.py --config bpu_export_config.yaml
         sudo docker run --rm hello-world
         ```
 
-2.  **获取并加载离线镜像**（推荐 CPU 镜像，根据 RDK 型号选择）
+2.  **获取并加载离线镜像**（S600 推荐 OE 3.7.0 S100/S600 CPU 镜像）
     *   镜像下载页：[https://developer.d-robotics.cc/rdk_doc/rdk_s/Advanced_development/toolchain_development/overview#docker-%E9%95%9C%E5%83%8F](https://developer.d-robotics.cc/rdk_doc/rdk_s/Advanced_development/toolchain_development/overview#docker-%E9%95%9C%E5%83%8F)
     *   加载镜像：
         ```bash
-        sudo docker load -i ai_toolchain_ubuntu_22_s100_xxx.tar
+        sudo docker load -i ai_toolchain_ubuntu_22_s100_s600_cpu_v3.7.0.tar
         ```
 
 3.  **启动容器**（推荐参数）
@@ -404,15 +410,15 @@ python export_bpu_actpolicy.py --config bpu_export_config.yaml
          <docker-image-name> /bin/bash
         ```
     *   **常用替换项**：
-        - `<docker-image-name>` 替换为加载后的镜像名（用 `docker images` 查看）
+        - S600 推荐镜像名：`registry.d-robotics.cc/deliver/ai_toolchain_ubuntu_22_s100_s600_cpu:v3.7.0`
 
 4.  **在容器内编译模型**
     *   进入挂载目录并执行编译脚本：
         ```bash
-        cd /workspace/bpu_export_output
+        cd /workspace/bpu_export_act_so100_s600_calfix
         bash build_all.sh
         ```
-    *   编译输出通常位于 `bpu_export_output/` 下的子目录（根据脚本输出确认）。
+    *   编译输出通常位于 `export_path` 下的 `bpu_output/` 和各子模型目录中（根据脚本输出确认）。
 
 5.  **常见问题与排查**
     *   **权限问题**：宿主机复制回文件时出现权限错误，检查文件属主或使用 `sudo chown -R`。
@@ -423,16 +429,12 @@ python export_bpu_actpolicy.py --config bpu_export_config.yaml
 
 **示例完整流程：**
 ```bash
-# 1. 加载镜像 (宿主机)
-sudo docker load -i ai_toolchain_ubuntu_22_s100_xxx.tar
-
-# 2. 启动容器并挂载当前工程目录 (宿主机)
-sudo docker run -it --rm --network host --shm-size=15g \
-  -v "$(pwd)":/workspace --workdir /workspace <docker-image-name> /bin/bash
-
-# 3. 在容器内编译 (容器内)
-cd /workspace/bpu_export_output
-bash build_all.sh
+# 直接在宿主机运行一次性编译命令
+docker run --rm \
+  -v /path/to/bpu_export_act_so100_s600_calfix:/workspace \
+  -w /workspace \
+  registry.d-robotics.cc/deliver/ai_toolchain_ubuntu_22_s100_s600_cpu:v3.7.0 \
+  bash build_all.sh
 ```
 
 预计产物为：
@@ -455,10 +457,10 @@ bpu_output/
 
 ---
 
-## 8. 板端部署与推理 (RDK S100/S100P)
+## 8. 板端部署与推理 (RDK S600)
 
 ### 前提条件
-1.  已安装 `D-Robotics/lerobot` 仓库的 LeRobot 和 `hbm_runtime`。
+1.  已安装 `D-Robotics/lerobot` 仓库的 LeRobot 和 `hbm-runtime`。
 2.  已将 **`bpu_output`** 文件夹（包含量化后的 `.hbm` 模型和校准参数）传输到板端。
 3.  **硬件配置**: 请参考以上的数据采集和遥操作步骤，完成 `config` 文件的配置，确保**机械臂端口号**、**相机端口号**及**校准文件**配置正确。
 
@@ -474,9 +476,14 @@ bpu_output/
     
     python bpu_control_robot.py \
       --bpu-act-path ../bpu_output \
+      --robot-port /dev/ttyACM0 \
+      --camera-index 0 \
+      --camera-name front \
       --fps 30 \
       --inference-time 60
     ```
+
+    ACT 一次推理会输出 100 步 action chunk，脚本会自动从 `new_actions.npy` 推断 `n_action_steps`。不要为了调试传 `--n-action-steps 1`，否则会改变 ACT 的运行语义。
 
 ### 故障排查
 
