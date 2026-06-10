@@ -3,7 +3,7 @@
 
 **此 `s600` 分支用于 LeRobot v0.5.2 的 ACT 模型导出与 RDK S600 BPU 部署验证。**
 
-**注意：S600 请使用 `nash-p` / OE 3.7.0 S100/S600 工具链；不要混用旧的 S100/S600 实验产物或旧校准配置。**
+**注意：S600 请使用 `nash-p` / OE 3.7.0 S100/S600 工具链。**
 
 本仓库提供了一套工具，用于将基于 [LeRobot](https://github.com/D-Robotics/lerobot) 框架训练的 ACT 策略模型导出并部署到地瓜机器人 RDK S600 上，利用 BPU 进行高效推理。
 

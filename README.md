@@ -3,7 +3,7 @@ English| [简体中文](./README_CN.md)
 
 **This `s600` branch is intended for exporting LeRobot v0.5.2 ACT policies and deploying them on RDK S600 BPU.**
 
-**Note: For S600, use `nash-p` and the OE 3.7.0 S100/S600 toolchain. Do not mix old S100/S600 experimental artifacts or old calibration configs with this branch.**
+**Note: For S600, use `nash-p` and the OE 3.7.0 S100/S600 toolchain.**
 
 This repository provides a set of tools to export ACT policy models trained with the [LeRobot](https://github.com/D-Robotics/lerobot) framework and deploy them to D-Robotics RDK S600, utilizing the BPU for efficient inference.
 
