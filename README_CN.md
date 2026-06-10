@@ -21,7 +21,17 @@
 
 ### 1.1 开发机 (用于模型转换)
 
-本分支验证时使用的是 **LeRobot v0.5.2**。推荐在独立的 conda 环境中安装：
+本分支验证时使用的是 **LeRobot v0.5.2**。实际验证环境中的关键版本为：
+
+```text
+datasets 4.8.5
+torch 2.7.1+cu126
+onnxruntime 1.26.0
+onnx 1.21.0
+numpy 2.2.6
+```
+
+推荐在独立的 conda 环境中安装：
 
 ```bash
 conda activate lerobot
@@ -55,8 +65,8 @@ pip install onnx onnxsim termcolor tqdm safetensors
     git clone https://github.com/D-Robotics/lerobot.git
     cd lerobot
     pip install -e ".[feetech]"
-    # D-Robotics fork 版本已锁定 datasets 依赖，无需手动操作。
-    # 若您使用其他 LeRobot 仓库版本并遇到兼容性问题，可能需手动安装 datasets==2.19.0
+    # 本分支验证环境使用 datasets 4.8.5。
+    # 若使用其他 LeRobot 版本，请以对应 checkpoint 和数据集能被当前环境正确加载为准。
     ```
 
 2.  **安装 BPU 推理库**:

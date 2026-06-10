@@ -21,7 +21,17 @@ For the full workflow documentation, see: 👉 *[Full Workflow Guide](./doc/WORK
 
 ### 1.1 Development Machine (For Model Conversion)
 
-This branch was verified with **LeRobot v0.5.2**. A dedicated conda environment is recommended:
+This branch was verified with **LeRobot v0.5.2**. The verified environment used:
+
+```text
+datasets 4.8.5
+torch 2.7.1+cu126
+onnxruntime 1.26.0
+onnx 1.21.0
+numpy 2.2.6
+```
+
+A dedicated conda environment is recommended:
 
 ```bash
 conda activate lerobot
@@ -56,8 +66,8 @@ The on-board runtime environment has high requirements for stability. Please be 
     git clone https://github.com/D-Robotics/lerobot.git
     cd lerobot
     pip install -e .
-    # The D-Robotics fork version has locked the datasets dependency, so no manual action is needed.
-    # If you are using other LeRobot repository versions and encounter compatibility issues, you might need to manually install datasets==2.19.0.
+    # This branch was verified with datasets 4.8.5.
+    # If you use another LeRobot version, make sure the checkpoint and dataset can be loaded correctly.
     ```
 
 2.  **Install BPU Inference Library**:

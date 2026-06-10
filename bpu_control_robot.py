@@ -15,252 +15,337 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# 注意: 此程序在RDK板端运行
-# Attention: This program runs on RDK board.
+"""Deploy an exported ACT policy on RDK BPU, mirroring lerobot-rollout ACT semantics.
 
-import time
-import numpy as np
-from copy import copy
+Control loop matches ``SyncInferenceEngine.get_action`` + ``ACTPolicy.select_action``:
+  - one BPU inference fills an action chunk (default 100 steps)
+  - execute one action per control tick from the chunk queue
+  - only re-infer when the queue is empty
+"""
+
+from __future__ import annotations
+
 import argparse
-import os
 import glob
+import logging
+import os
+import time
 
+import numpy as np
 import torch
 from torch import Tensor
-from collections import deque
 
-from lerobot.common.robot_devices.robots.utils import make_robot
-from lerobot.common.robot_devices.control_utils import busy_wait
+from lerobot.cameras.opencv import OpenCVCameraConfig
+from lerobot.robots.so_follower import SO100Follower, SO100FollowerConfig
 
 try:
     from hbm_runtime import HB_HBMRuntime
-    print("using: hbm_runtime")
-except ImportError:
-    print("hbm_runtime not found, please check!")
-    exit()
+except ImportError as exc:
+    raise SystemExit("hbm_runtime not found, please check!") from exc
 
-def detect_cameras_from_model(bpu_act_path):
-    """Detect two camera names from model normalization files."""
+logger = logging.getLogger(__name__)
+
+
+def parse_max_relative_target(value):
+    if value is None:
+        return None
+    if isinstance(value, str):
+        lowered = value.strip().lower()
+        if lowered in {"none", "null", "off", "-1"}:
+            return None
+        return float(value)
+    return float(value)
+
+
+def detect_cameras_from_model(bpu_act_path: str) -> list[str]:
     camera_names = []
-
-    # Find all files ending with _mean.npy but not action_mean
-    mean_files = glob.glob(os.path.join(bpu_act_path, "*_mean.npy"))
-
-    for mean_file in mean_files:
+    for mean_file in glob.glob(os.path.join(bpu_act_path, "*_mean.npy")):
         filename = os.path.basename(mean_file)
         if filename.startswith("action_"):
-            continue  # Skip action-related files
-
-        # Extract camera name (remove _mean.npy suffix)
+            continue
         camera_name = filename.replace("_mean.npy", "")
-
-        # Check if corresponding std file exists
         std_file = os.path.join(bpu_act_path, f"{camera_name}_std.npy")
         if os.path.exists(std_file):
             camera_names.append(camera_name)
+    if not camera_names:
+        raise ValueError(f"No camera normalization files found under {bpu_act_path}")
+    return sorted(camera_names)
 
-    if len(camera_names) != 2:
-        raise ValueError(f"Expected exactly 2 cameras, but found {len(camera_names)}: {camera_names}")
 
-    return sorted(camera_names)  # Sort for consistent ordering
+def detect_n_action_steps(bpu_act_path: str, override: int | None = None) -> int:
+    if override is not None:
+        return override
+    ref_path = os.path.join(bpu_act_path, "new_actions.npy")
+    if os.path.exists(ref_path):
+        arr = np.load(ref_path)
+        if arr.ndim == 3:
+            return int(arr.shape[1])
+    return 100
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--bpu-act-path', type=str, default='/root/d-lerobot-runtime/outputs/bpu_output', help='Path to LeRobot ACT Policy model.')
+
+class BPUACTPolicy:
+    """ACT policy backed by exported BPU models.
+
+    ``select_action`` intentionally mirrors ``ACTPolicy.select_action`` from lerobot.
     """
-    # example: --bpu-act-path pretrained_model
-    .
-    |-- BPU_ACTPolicy_TransformerLayers.hbm
-    |-- BPU_ACTPolicy_VisionEncoder.hbm
-    |-- action_mean.npy
-    |-- action_mean_unnormalize.npy
-    |-- action_std.npy
-    |-- action_std_unnormalize.npy
-    |-- camera1_mean.npy    # camera names are auto-detected
-    |-- camera1_std.npy
-    |-- camera2_mean.npy
-    `-- camera2_std.npy
-    """
-    parser.add_argument('--fps', type=int, default=30, help='')
-    parser.add_argument('--inference-time', type=int, default=1000, help='seconds')
-    parser.add_argument('--n-action-steps', type=int, default=50, help='')
-    opt = parser.parse_args()
 
-    # Auto-detect cameras from model files
-    camera_names = detect_cameras_from_model(opt.bpu_act_path)
-    print(f"Detected cameras from model: {camera_names}")
-
-    robot = make_robot("so101")
-    robot.connect()
-    policy = RDK_ACTPolicy(opt.bpu_act_path, opt.n_action_steps, camera_names)
-    # Copyright 2024 The HuggingFace Inc. team. All rights reserved.
-    for _ in range(opt.inference_time * opt.fps):
-        start_time = time.perf_counter()
-        # Read the follower state and access the frames from the cameras
-        observation = robot.capture_observation()
-        # Convert to pytorch format: channel first and float32 in [0,1]
-        # with batch dimension
-        pred_action = predict_action(observation, policy)[0]
-        # Remove batch dimension
-        action = pred_action.squeeze(0)
-        # Move to cpu, if not already the case
-        action = action.to("cpu")
-        # Order the robot to move
-        robot.send_action(action)
-
-        dt_s = time.perf_counter() - start_time
-        busy_wait(1 / opt.fps - dt_s)
-    robot.disconnect()
-
-# Copyright 2024 The HuggingFace Inc. team. All rights reserved.
-class RDK_ACTPolicy():
-    def __init__(self, bpu_act_model_path, n_action_steps, camera_names):
+    def __init__(self, bpu_act_model_path: str, n_action_steps: int, camera_names: list[str]):
+        self.bpu_act_model_path = bpu_act_model_path
         self.n_action_steps = n_action_steps
-        self._action_queue = deque([], maxlen=self.n_action_steps)
         self.camera_names = camera_names
+        self._action_queue: list[Tensor] = []
+        self._inference_count = 0
 
-        print(f"Initializing BPU policy with cameras: {camera_names}")
-
-        # Dynamically load normalization parameters for all cameras
-        self.camera_params = {}
+        self.camera_params: dict[str, dict[str, Tensor]] = {}
         for camera_name in camera_names:
             std_path = os.path.join(bpu_act_model_path, f"{camera_name}_std.npy")
             mean_path = os.path.join(bpu_act_model_path, f"{camera_name}_mean.npy")
+            self.camera_params[camera_name] = {
+                "std": torch.tensor(np.load(std_path), dtype=torch.float32) + 1e-8,
+                "mean": torch.tensor(np.load(mean_path), dtype=torch.float32),
+            }
 
-            if os.path.exists(std_path) and os.path.exists(mean_path):
-                self.camera_params[camera_name] = {
-                    'std': torch.tensor(np.load(std_path), dtype=torch.float32) + 1e-8,
-                    'mean': torch.tensor(np.load(mean_path), dtype=torch.float32)
-                }
-                print(f"Loaded normalization params for {camera_name}")
-            else:
-                raise FileNotFoundError(f"Missing normalization files for camera: {camera_name}")
+        self.state_mean = torch.tensor(
+            np.load(os.path.join(bpu_act_model_path, "action_mean.npy")), dtype=torch.float32
+        )
+        self.state_std = torch.tensor(
+            np.load(os.path.join(bpu_act_model_path, "action_std.npy")), dtype=torch.float32
+        ) + 1e-8
+        self.action_mean = torch.tensor(
+            np.load(os.path.join(bpu_act_model_path, "action_mean_unnormalize.npy")), dtype=torch.float32
+        )
+        self.action_std = torch.tensor(
+            np.load(os.path.join(bpu_act_model_path, "action_std_unnormalize.npy")), dtype=torch.float32
+        )
 
-        # Load action normalization parameters
-        action_std_path = os.path.join(bpu_act_model_path, "action_std.npy")
-        action_mean_path = os.path.join(bpu_act_model_path, "action_mean.npy")
-        action_std_unnormalize_path = os.path.join(bpu_act_model_path, "action_std_unnormalize.npy")
-        action_mean_unnormalize_path = os.path.join(bpu_act_model_path, "action_mean_unnormalize.npy")
+        vision_path = os.path.join(bpu_act_model_path, "BPU_ACTPolicy_VisionEncoder.hbm")
+        transformer_path = os.path.join(bpu_act_model_path, "BPU_ACTPolicy_TransformerLayers.hbm")
+        self.bpu_policy = HB_HBMRuntime([vision_path, transformer_path])
 
-        # Check all required files
-        required_files = [action_std_path, action_mean_path, action_std_unnormalize_path, action_mean_unnormalize_path]
-        for file_path in required_files:
-            if not os.path.exists(file_path):
-                raise FileNotFoundError(f"Required file not found: {file_path}")
+    def reset(self) -> None:
+        self._action_queue.clear()
 
-        self.action_std = torch.tensor(np.load(action_std_path), dtype=torch.float32) + 1e-8
-        self.action_mean = torch.tensor(np.load(action_mean_path), dtype=torch.float32)
-        self.action_std_unnormalize = torch.tensor(np.load(action_std_unnormalize_path), dtype=torch.float32)
-        self.action_mean_unnormalize = torch.tensor(np.load(action_mean_unnormalize_path), dtype=torch.float32)
+    @property
+    def queue_size(self) -> int:
+        return len(self._action_queue)
 
-        # Validate parameters
-        for camera_name in camera_names:
-            params = self.camera_params[camera_name]
-            assert not torch.isinf(params['std']).any(), f"Invalid std for {camera_name}"
-            assert not torch.isinf(params['mean']).any(), f"Invalid mean for {camera_name}"
+    def select_action(self, batch: dict[str, Tensor]) -> Tensor:
+        if not self._action_queue:
+            self._refill_action_queue(batch)
+        return self._action_queue.pop(0)
 
-        assert not torch.isinf(self.action_std).any(), "Invalid action_std"
-        assert not torch.isinf(self.action_mean).any(), "Invalid action_mean"
-        assert not torch.isinf(self.action_std_unnormalize).any(), "Invalid action_std_unnormalize"
-        assert not torch.isinf(self.action_mean_unnormalize).any(), "Invalid action_mean_unnormalize"
+    def _refill_action_queue(self, batch: dict[str, Tensor]) -> None:
+        begin = time.perf_counter()
+        batch = self._normalize_inputs(batch)
 
-        # Set model paths 
-        bpu_act_policy_visionencoder_path = os.path.join(bpu_act_model_path,"BPU_ACTPolicy_VisionEncoder.hbm")
-        bpu_act_policy_transformerlayers_path = os.path.join(bpu_act_model_path,"BPU_ACTPolicy_TransformerLayers.hbm")
-
-        if not os.path.exists(bpu_act_policy_visionencoder_path):
-            raise FileNotFoundError(f"Vision encoder model not found: {bpu_act_policy_visionencoder_path}")
-        if not os.path.exists(bpu_act_policy_transformerlayers_path):
-            raise FileNotFoundError(f"Transformer model not found: {bpu_act_policy_transformerlayers_path}")
-
-        # load BPU model using HB_HBMRuntime
-        self.bpu_policy = HB_HBMRuntime([
-            bpu_act_policy_visionencoder_path,
-            bpu_act_policy_transformerlayers_path
-        ])
-        self.cnt = 0
-        print("BPU models loaded successfully")
-            
-
-    def bpu_select_action(self, batch: dict[str, Tensor]) -> Tensor:
-        # normalize inputs
-        batch = self.normalize_inputs(batch)
-
-        # Action queue logic for n_action_steps > 1. When the action_queue is depleted, populate it by
-        # querying the policy.
-        if len(self._action_queue) == 0:
-            begin_time = time.time()
-
-            # Prepare state input
-            state = batch["observation.state"].numpy().copy()
-
-            # Dynamically process all cameras through VisionEncoder
-            vision_features = []
-            for camera_name in self.camera_names:
-                camera_input = batch[f'observation.images.{camera_name}'].numpy().copy()
-                # Process through VisionEncoder
-                vision_output = self.bpu_policy.run(
-                    {"images": camera_input},
-                    model_name="BPU_ACTPolicy_VisionEncoder"
-                )
-                vision_feature = next(iter(vision_output["BPU_ACTPolicy_VisionEncoder"].values()))
-                vision_features.append(vision_feature)
-
-            # Build TransformerLayers inputs
-            transformer_inputs = {"states": state}
-            for i, camera_name in enumerate(self.camera_names):
-                transformer_inputs[f"{camera_name}_features"] = vision_features[i]
-
-            # TransformerLayers inference
-            transformer_outputs = self.bpu_policy.run(
-                transformer_inputs,
-                model_name="BPU_ACTPolicy_TransformerLayers"
+        state = batch["observation.state"].numpy().copy()
+        vision_features = []
+        for camera_name in self.camera_names:
+            camera_input = batch[f"observation.images.{camera_name}"].numpy().copy()
+            vision_output = self.bpu_policy.run(
+                {"images": camera_input},
+                model_name="BPU_ACTPolicy_VisionEncoder",
+            )
+            vision_features.append(
+                next(iter(vision_output["BPU_ACTPolicy_VisionEncoder"].values()))
             )
 
-            # Extract action predictions
-            action_output = next(iter(transformer_outputs["BPU_ACTPolicy_TransformerLayers"].values()))
-            actions = torch.from_numpy(action_output)[:, :self.n_action_steps]
+        transformer_inputs = {"states": state}
+        for camera_name, feature in zip(self.camera_names, vision_features, strict=True):
+            transformer_inputs[f"{camera_name}_features"] = feature
 
-            print(f"{self.cnt} BPU ACT Policy Time : " + "\033[1;31m" + "%.2f ms"%(1000*(time.time() - begin_time)) + "\033[0m")
-            self.cnt += 1
-            actions = self.unnormalize_outputs({"action": actions})["action"]
-            self._action_queue.extend(actions.transpose(0, 1))
-        return self._action_queue.popleft()
+        transformer_outputs = self.bpu_policy.run(
+            transformer_inputs,
+            model_name="BPU_ACTPolicy_TransformerLayers",
+        )
+        action_output = next(iter(transformer_outputs["BPU_ACTPolicy_TransformerLayers"].values()))
+        actions = torch.from_numpy(np.asarray(action_output)).float()
+        if actions.ndim == 2:
+            actions = actions.unsqueeze(0)
+        if actions.ndim != 3:
+            raise RuntimeError(f"Unexpected BPU action shape: {tuple(actions.shape)}")
 
-    def normalize_inputs(self, batch):
-        # Normalize state
-        batch["observation.state"] = (batch["observation.state"] - self.action_mean) / self.action_std
+        actions = actions[:, : self.n_action_steps]
+        actions = actions * self.action_std + self.action_mean
 
-        # Dynamically normalize all camera images
+        self._action_queue.clear()
+        for step_idx in range(actions.shape[1]):
+            self._action_queue.append(actions[0, step_idx].clone())
+
+        if len(self._action_queue) != self.n_action_steps:
+            raise RuntimeError(
+                f"Action queue fill failed: expected {self.n_action_steps}, got {len(self._action_queue)} "
+                f"(raw shape={tuple(torch.from_numpy(np.asarray(action_output)).shape)})"
+            )
+
+        elapsed_ms = 1000 * (time.perf_counter() - begin)
+        self._inference_count += 1
+        first = self._action_queue[0]
+        last = self._action_queue[-1]
+        step_delta = (last - first).abs().mean().item()
+        logger.info(
+            "BPU inference #%d: %.2f ms, queued=%d, chunk_step_delta_mean=%.4f deg, "
+            "action[0][:3]=%s",
+            self._inference_count,
+            elapsed_ms,
+            len(self._action_queue),
+            step_delta,
+            [round(v, 3) for v in first[:3].tolist()],
+        )
+
+    def _normalize_inputs(self, batch: dict[str, Tensor]) -> dict[str, Tensor]:
+        batch = dict(batch)
+        batch["observation.state"] = (batch["observation.state"] - self.state_mean) / self.state_std
         for camera_name in self.camera_names:
-            if f'observation.images.{camera_name}' in batch:
-                params = self.camera_params[camera_name]
-                batch[f'observation.images.{camera_name}'] = (
-                    batch[f'observation.images.{camera_name}'] - params['mean']
-                ) / params['std']
+            key = f"observation.images.{camera_name}"
+            params = self.camera_params[camera_name]
+            batch[key] = (batch[key] - params["mean"]) / params["std"]
+        return batch
 
-        return batch
-    
-    def unnormalize_outputs(self, batch):
-        batch["action"] = batch["action"] * self.action_std_unnormalize + self.action_mean_unnormalize
-        return batch
-# Copyright 2024 The HuggingFace Inc. team. All rights reserved.
-def predict_action(observation, policy):
-    observation = copy(observation)
-    for name in observation:
-        if "image" in name:
-            observation[name] = observation[name].type(torch.float32) / 255
-            observation[name] = observation[name].permute(2, 0, 1).contiguous()
-        observation[name] = observation[name].unsqueeze(0)
-        observation[name] = observation[name]
-    action = policy.bpu_select_action(observation)
-    return action
-# Copyright 2024 The HuggingFace Inc. team. All rights reserved.
-def _no_stats_error_str(name: str) -> str:
-    return (
-        f"`{name}` is infinity. You should either initialize with `stats` as an argument, or use a "
-        "pretrained model."
+
+def build_policy_batch(observation: dict, policy: BPUACTPolicy, motor_names: list[str]) -> dict[str, Tensor]:
+    state = [observation[f"{motor}.pos"] for motor in motor_names]
+    batch: dict[str, Tensor] = {
+        "observation.state": torch.tensor(state, dtype=torch.float32).unsqueeze(0)
+    }
+    for camera_name in policy.camera_names:
+        frame = observation[camera_name]
+        if not isinstance(frame, torch.Tensor):
+            frame = torch.from_numpy(frame)
+        batch[f"observation.images.{camera_name}"] = (
+            frame.to(dtype=torch.float32).permute(2, 0, 1).contiguous().unsqueeze(0) / 255.0
+        )
+    return batch
+
+
+def sanity_check_policy(policy: BPUACTPolicy, camera_names: list[str]) -> None:
+    """Verify ACT chunk queue semantics before touching the robot."""
+    batch = {
+        "observation.state": torch.zeros(1, 6),
+        **{
+            f"observation.images.{name}": torch.rand(1, 3, 480, 640) / 255.0
+            for name in camera_names
+        },
+    }
+    policy.reset()
+    inferences = 0
+    for tick in range(min(10, policy.n_action_steps + 2)):
+        before = policy._inference_count
+        policy.select_action(batch)
+        if policy._inference_count > before:
+            inferences += 1
+    expected = 1 if policy.n_action_steps >= 10 else policy.n_action_steps
+    if inferences != expected:
+        raise RuntimeError(
+            f"ACT queue sanity check failed: {inferences} BPU inferences in 10 ticks, "
+            f"expected {expected}. Do not pass --n-action-steps 1."
+        )
+    logger.info("ACT queue sanity check passed (%d inferences / 10 ticks)", inferences)
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Run exported ACT policy on RDK BPU + SO100 follower.")
+    parser.add_argument("--bpu-act-path", type=str, required=True)
+    parser.add_argument("--fps", type=int, default=30)
+    parser.add_argument("--inference-time", type=int, default=1000, help="Run duration in seconds.")
+    parser.add_argument(
+        "--n-action-steps",
+        type=int,
+        default=None,
+        help="Actions executed per BPU inference (default: auto from new_actions.npy, else 100).",
     )
-    
-if __name__ == '__main__':
+    parser.add_argument("--robot-port", type=str, default="/dev/ttyACM0")
+    parser.add_argument("--camera-index", type=int, default=0)
+    parser.add_argument("--camera-width", type=int, default=640)
+    parser.add_argument("--camera-height", type=int, default=480)
+    parser.add_argument("--camera-name", type=str, default="front")
+    parser.add_argument(
+        "--max-relative-target",
+        type=parse_max_relative_target,
+        default=None,
+        help="Safety clamp in degrees (default: disabled, same as lerobot-rollout).",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Log queue size every control tick.",
+    )
+    return parser.parse_args()
+
+
+def main() -> None:
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s", force=True)
+    opt = parse_args()
+
+    camera_names = detect_cameras_from_model(opt.bpu_act_path)
+    if opt.camera_name not in camera_names:
+        raise ValueError(
+            f"--camera-name={opt.camera_name} not found in model cameras {camera_names}"
+        )
+    logger.info("Detected cameras from model: %s", camera_names)
+
+    n_action_steps = detect_n_action_steps(opt.bpu_act_path, opt.n_action_steps)
+    logger.info(
+        "n_action_steps=%d (one BPU inference -> %d control ticks before re-infer)",
+        n_action_steps,
+        n_action_steps,
+    )
+
+    policy = BPUACTPolicy(opt.bpu_act_path, n_action_steps, camera_names)
+    sanity_check_policy(policy, camera_names)
+    policy.reset()
+
+    robot = SO100Follower(
+        SO100FollowerConfig(
+            port=opt.robot_port,
+            id="so100_follower",
+            max_relative_target=opt.max_relative_target,
+            cameras={
+                opt.camera_name: OpenCVCameraConfig(
+                    index_or_path=opt.camera_index,
+                    width=opt.camera_width,
+                    height=opt.camera_height,
+                    fps=opt.fps,
+                    warmup_s=10,
+                    fourcc="MJPG",
+                )
+            },
+        )
+    )
+    robot.connect()
+    motor_names = list(robot.bus.motors.keys())
+
+    total_ticks = opt.inference_time * opt.fps
+    logger.info("Starting control loop for %d ticks @ %d fps", total_ticks, opt.fps)
+
+    try:
+        for tick in range(total_ticks):
+            loop_start = time.perf_counter()
+
+            observation = robot.get_observation()
+            batch = build_policy_batch(observation, policy, motor_names)
+            action_values = policy.select_action(batch)
+
+            action = {
+                f"{motor}.pos": action_values[i].item()
+                for i, motor in enumerate(motor_names)
+            }
+            robot.send_action(action)
+
+            if opt.debug or (tick + 1) % opt.fps == 0:
+                logger.info(
+                    "tick=%d queue_remaining=%d inference_count=%d action[:3]=%s",
+                    tick,
+                    policy.queue_size,
+                    policy._inference_count,
+                    [round(action_values[i].item(), 3) for i in range(min(3, len(action_values)))],
+                )
+
+            dt_s = time.perf_counter() - loop_start
+            time.sleep(max(0.0, 1 / opt.fps - dt_s))
+    finally:
+        robot.disconnect()
+
+
+if __name__ == "__main__":
     main()
