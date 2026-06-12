@@ -1,7 +1,27 @@
 English| [简体中文](./WORKFLOW_GUIDE_CN.md)
 # LeRobot + D-Robotics RDK End-to-End Workflow Guide (Detailed)
 
-This document, based on the [D-Robotics/lerobot](https://github.com/D-Robotics/lerobot) repository and this toolchain, provides detailed steps to implement an ACT policy on the **SO-101 Robot Arm** from scratch and deploy it to **RDK S600**. For SO-101 assembly, motor setup, and calibration, also refer to the official Hugging Face [SO-101 documentation](https://huggingface.co/docs/lerobot/so101).
+> About a year ago, we successfully deployed Hugging Face [LeRobot](https://github.com/huggingface/lerobot)'s ACT policy on the **RDK S100** — walking through the entire end-to-end pipeline from teleoperation data collection, model training, to BPU quantization and inference. We shared our experience on the [community forum](https://forum.d-robotics.cc/t/topic/28858).
+>
+> But over the past year, things have changed quite a bit:
+>
+> - **LeRobot framework has been significantly upgraded**: It has evolved from the initial v0.1/v0.2 all the way to v0.5.2. The API has been almost completely rewritten — the dataset format has progressed from v2.1 (one episode per file) to v3.0 (multiple episodes consolidated into packages), and the training/collection/calibration CLI interfaces have been replaced with a new set including `lerobot-record`, `lerobot-train`, `lerobot-calibrate`, etc.
+> - **D-Robotics launched the RDK S600**: With stronger computing power, larger BPU memory, paired with the OE 3.7.0 toolchain and `nash-p` architecture, it has become the new primary platform for edge deployment.
+> - **The old tutorials gradually fell behind**: Community members have reported that following the old documentation leads to issues like incompatible dataset formats, CLI commands that can't be found, and misaligned calibration quantization ranges.
+>
+> So we re-examined the entire pipeline, verified the full workflow from scratch based on **LeRobot v0.5.2 + RDK S600 + SO-101 robot arm**, updated the export scripts and toolchain configurations. This document is the complete, updated deployment guide — whether you're new to LeRobot or migrating from the old tutorials, you can start here.
+
+This document, based on [Hugging Face LeRobot](https://github.com/huggingface/lerobot) and this toolchain, provides detailed steps to implement an ACT policy on the **SO-101 Robot Arm** from scratch and deploy it to **RDK S600**. For SO-101 assembly, motor setup, and calibration, also refer to the official [SO-101 documentation](https://huggingface.co/docs/lerobot/so101).
+
+**Pick and Place Demo:**
+
+![20260612-114149|video](upload://9yYeSZ2FmznNnd1p9gqqnxqCYmu.mp4)
+
+> Note that this demo is just a simple Pick and Place demonstration with only 33 episodes of training data collected. Below is a side-by-side visualization of 6 training episodes (Episode 0/6/13/20/26/32):
+
+<div align="center">
+  <img src="./assets/demo_episodes_grid.gif" width="640" alt="Training data visualization - 6 episodes side by side" />
+</div>
 
 <div align="center">
   <table>
@@ -39,6 +59,8 @@ This document, based on the [D-Robotics/lerobot](https://github.com/D-Robotics/l
 
 ## 1. Environment Setup (Development Machine & RDK)
 
+**Use [huggingface/lerobot](https://github.com/huggingface/lerobot). Do not use the outdated `D-Robotics/lerobot` fork. This branch was verified with LeRobot v0.5.2.**
+
 We need to prepare two environments:
 *   **Development Machine (PC/Server)**: Responsible for **Model Training** and **Model Export/Compilation** (NVIDIA GPU required).
 *   **RDK Board**: Responsible for **Calibration, Data Collection, Teleoperation**, and **Final Inference**.
@@ -48,8 +70,8 @@ We need to prepare two environments:
 Ubuntu 20.04/22.04 + NVIDIA GPU is recommended.
 
 ```bash
-# 1. Clone D-Robotics repository
-git clone https://github.com/D-Robotics/lerobot.git
+# 1. Clone Hugging Face LeRobot repository
+git clone https://github.com/huggingface/lerobot.git
 cd lerobot
 git clone https://github.com/D-Robotics/rdk_LeRobot_tools.git
 cd rdk_LeRobot_tools && git checkout s600 && cd ..
@@ -65,8 +87,8 @@ pip install onnx onnxsim termcolor tqdm safetensors
 SSH into RDK S600:
 
 ```bash
-# 1. Clone D-Robotics LeRobot and this tools repo
-git clone https://github.com/D-Robotics/lerobot.git
+# 1. Clone Hugging Face LeRobot and this tools repo
+git clone https://github.com/huggingface/lerobot.git
 cd lerobot
 git clone https://github.com/D-Robotics/rdk_LeRobot_tools.git
 cd rdk_LeRobot_tools && git checkout s600 && cd ..
@@ -359,14 +381,78 @@ combine_jobs: 6
 
 This config generates calibration data aligned with S600 runtime preprocessing: image tensors are converted from `0..255` to `0..1` before `(image - mean) / std`.
 
-### 7.2 Export ONNX
+### 7.2 Export ONNX and Compile Configuration
 
 ```bash
-# 1. Export ONNX (Development Machine)
+# Run on the Development Machine
 cd rdk_LeRobot_tools
 python export_bpu_actpolicy.py --config bpu_export_config_s600_calfix.yaml
 ```
-*Success indicator: The directory specified by `export_path` contains `build_all.sh`, ONNX files, and calibration data.*
+
+When you run this script, it executes the following 6 steps in sequence:
+
+**① Load model and dataset, auto-detect cameras**
+
+The script loads the PyTorch ACT checkpoint from `act_path` and reads the dataset from `dataset.root`. It then fetches one batch from the dataset, scans all fields starting with `observation.images.`, and automatically infers camera names (e.g., `front`, `laptop`).
+
+**② Export pre/post-processing normalization parameters**
+
+Reads statistics saved during training from the processor safetensors files in the checkpoint directory:
+*   `{camera_name}_mean.npy` / `{camera_name}_std.npy`: Image normalization mean and std.
+*   `action_mean.npy` / `action_std.npy`: State input normalization parameters (from preprocessor).
+*   `action_mean_unnormalize.npy` / `action_std_unnormalize.npy`: Action output denormalization parameters (from postprocessor).
+
+These `.npy` files are loaded by `bpu_control_robot.py` at board-side inference time for manual normalization/denormalization outside the BPU.
+
+**③ Export VisionEncoder ONNX**
+
+Extracts the ACT `backbone` (ResNet) and `encoder_img_feat_input_proj` (feature projection layer), wrapping them as a `BPU_ACTPolicy_VisionEncoder` submodel. The input is a single normalized image tensor; the output is a visual feature map `[1, 512, 15, 20]`. After exporting to ONNX, if `onnx_sim: true`, onnxsim is called to simplify the graph.
+
+**④ Export TransformerLayers ONNX**
+
+Wraps the ACT encoder + decoder + action_head as a `BPU_ACTPolicy_TransformerLayers` submodel. It takes two (or more) inputs:
+*   `states`: Normalized 6-DOF joint state `[1, 6]`
+*   `{camera_name}_features`: VisionEncoder output features `[1, 512, 15, 20]`
+
+The output is `Actions [1, 100, 6]` (ACT's 100-step action chunk). A copy of `new_actions.npy` is saved to `bpu_output/` for precision verification.
+
+**⑤ Generate OE compile configuration and build scripts**
+
+For each submodel, the script generates:
+*   `config_BPU_ACTPolicy_VisionEncoder.yaml` / `config_BPU_ACTPolicy_TransformerLayers.yaml`: Compile configs consumed by OE `hb_compile`, containing ONNX path, calibration data directory, `march: nash-p`, `norm_type: no_preprocess`, etc.
+*   `build_BPU_ACTPolicy_VisionEncoder.sh` / `build_BPU_ACTPolicy_TransformerLayers.sh`: Per-submodel build scripts.
+*   `build_all.sh`: A one-click entry script that compiles both submodels.
+
+**⑥ Generate quantization calibration data**
+
+Iterates over the training dataset (up to `cal_num` samples). For each sample:
+*   Image is processed through `0..255 → /255.0 → (image - mean) / std`, then saved as VisionEncoder calibration data.
+*   The normalized image is passed through the VisionEncoder forward pass to produce visual features, saved under Transformer's `{camera_name}/` calibration data.
+*   Normalized state is saved under Transformer's `state/` calibration data.
+
+*Success indicator: The directory specified by `export_path` contains the following structure:*
+
+```
+export_path/
+├── BPU_ACTPolicy_VisionEncoder/
+│   ├── BPU_ACTPolicy_VisionEncoder.onnx
+│   ├── config_BPU_ACTPolicy_VisionEncoder.yaml
+│   ├── calibration_data_BPU_ACTPolicy_VisionEncoder/
+│   └── build_BPU_ACTPolicy_VisionEncoder.sh
+├── BPU_ACTPolicy_TransformerLayers/
+│   ├── BPU_ACTPolicy_TransformerLayers.onnx
+│   ├── config_BPU_ACTPolicy_TransformerLayers.yaml
+│   ├── calibration_data_BPU_ACTPolicy_TransformerLayers/
+│   │   ├── state/
+│   │   └── front/
+│   └── build_BPU_ACTPolicy_TransformerLayers.sh
+├── bpu_output/
+│   ├── action_mean.npy / action_std.npy
+│   ├── action_mean_unnormalize.npy / action_std_unnormalize.npy
+│   ├── front_mean.npy / front_std.npy
+│   └── new_actions.npy
+└── build_all.sh
+```
 
 ### 7.3 Compile BPU Model (OpenExplorer Docker Environment)
 
@@ -379,7 +465,11 @@ python export_bpu_actpolicy.py --config bpu_export_config_s600_calfix.yaml
         ```
 
 2.  **Get and Load Offline Image** (for S600, use the OE 3.7.0 S100/S600 CPU image)
-    *   Download page: [https://developer.d-robotics.cc/rdk_doc/rdk_s/Advanced_development/toolchain_development/overview#docker-%E9%95%9C%E5%83%8F](https://developer.d-robotics.cc/rdk_doc/rdk_s/Advanced_development/toolchain_development/overview#docker-%E9%95%9C%E5%83%8F)
+    *   Toolchain release summary (continuously updated): [https://forum.d-robotics.cc/t/topic/35229](https://forum.d-robotics.cc/t/topic/35229)
+    *   Download the offline image package:
+        ```bash
+        wget https://d-robotics-aitoolchain.oss-cn-beijing.aliyuncs.com/oe/3.7.0/ai_toolchain_ubuntu_22_s100_s600_cpu_v3.7.0.tar
+        ```
     *   Load image:
         ```bash
         sudo docker load -i ai_toolchain_ubuntu_22_s100_s600_cpu_v3.7.0.tar
@@ -447,7 +537,7 @@ After completion, copy the generated `bpu_output` folder to the RDK board for de
 ## 8. Board Deployment & Inference (RDK S600)
 
 ### Prerequisites
-1.  Installed LeRobot from `D-Robotics/lerobot` repository and `hbm-runtime`.
+1.  Installed [huggingface/lerobot](https://github.com/huggingface/lerobot) and `hbm-runtime`.
 2.  Transferred the **`bpu_output`** folder (containing quantized `.hbm` models and calibration parameters) to the board.
 3.  **Hardware Config**: Ensure robot port, camera index, and camera name match training/export settings. Calibration files are saved by `lerobot-calibrate` under `~/.cache/huggingface/lerobot/calibration/`.
 
@@ -478,3 +568,15 @@ This is the final step to deploy the trained model to the RDK.
 
 *   **Robot Not Moving**: Check `ls /dev/ttyACM*`; confirm `--robot-port` is correct.
 *   **Camera Error**: Confirm `--camera-index` and `--camera-name` match `bpu_output/*_mean.npy`.
+
+### BPU Inference Performance Benchmark
+
+Pure BPU performance benchmark on RDK S600 for each ACT module (20 warmup + 200 official samples):
+
+| Module | Avg. Inference Time | Frame Rate |
+| :--- | :--- | :--- |
+| VisionEncoder | 3.92 ms | 255.0 inf/s |
+| TransformerLayers | 2.29 ms | 436.4 inf/s |
+| **Complete ACT** | **6.20 ms** | **161.2 inf/s** |
+
+ACT outputs a 100-step action chunk in one inference. At 30 fps control frequency, only one BPU inference (6.20 ms) is needed every 3.33 seconds, leaving the BPU idle for the rest of the time.

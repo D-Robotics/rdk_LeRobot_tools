@@ -1,7 +1,27 @@
 [English](./WORKFLOW_GUIDE_EN.md) | 简体中文
 # LeRobot + 地瓜机器人 RDK 全流程落地指南
 
-本文档基于 [D-Robotics/lerobot](https://github.com/D-Robotics/lerobot) 仓库及本工具链，提供从零开始在 **SO-101 机械臂** 上实现 ACT 策略并部署到 **RDK S600** 的详细步骤。SO-101 机械臂装配、电机设置和校准流程也可参考 Hugging Face 官方 [SO-101 文档](https://huggingface.co/docs/lerobot/so101)。
+> 大约在一年前，我们在 **RDK S100** 上跑通了 Hugging Face [LeRobot](https://github.com/huggingface/lerobot) 的 ACT 策略部署——从遥操数采、模型训练，到 BPU 量化推理，端到端地走了一遍全流程，并把经验分享在了[社区论坛](https://forum.d-robotics.cc/t/topic/28858)上。
+>
+> 但过去这一年里，事情发生了不少变化：
+>
+> - **LeRobot 框架大幅升级**：从最初的 v0.1/v0.2 一路迭代到了 v0.5.2。API 几乎全部重写——数据集格式从 v2.1（一条 episode 一个文件）演进到了 v3.0（多 episode 合并打包），训练/采集/标定的命令行接口也换成了 `lerobot-record`、`lerobot-train`、`lerobot-calibrate` 等一套全新 CLI。
+> - **地瓜机器人推出了 RDK S600**：更强的算力，更大的 BPU 内存，搭配 OE 3.7.0 工具链和 `nash-p` 架构，成为端侧部署的新主力平台。
+> - **老教程逐渐跟不上**：论坛里陆续有朋友反馈，按旧文档操作会遇到数据集格式不兼容、CLI 命令找不到、校准量化范围对不上等问题。
+>
+> 所以我们重新梳理了整条链路，基于 **LeRobot v0.5.2 + RDK S600 + SO-101 机械臂**，从头验证了全流程，并更新了导出脚本和工具链配置。这篇文档就是更新后的完整落地指南——无论你是第一次接触 LeRobot 的新朋友，还是从旧版教程迁移过来的老用户，都可以从这里开始。
+
+本文档基于 [Hugging Face LeRobot](https://github.com/huggingface/lerobot) 仓库及本工具链，提供从零开始在 **SO-101 机械臂** 上实现 ACT 策略并部署到 **RDK S600** 的详细步骤。SO-101 机械臂装配、电机设置和校准流程也可参考官方 [SO-101 文档](https://huggingface.co/docs/lerobot/so101)。
+
+**Pick and Place 演示：**
+
+![20260612-114149|video](upload://9yYeSZ2FmznNnd1p9gqqnxqCYmu.mp4)
+
+> 这个演示只是简单的 Pick and Place 展示，仅采集了 33 组训练数据。以下是 6 组训练数据（Episode 0/6/13/20/26/32）的并排可视化：
+
+<div align="center">
+  <img src="./assets/demo_episodes_grid.gif" width="640" alt="训练数据可视化 - 6 组 Episode 并排展示" />
+</div>
 
 <div align="center">
   <table>
@@ -41,6 +61,8 @@
 
 ## 1. 环境搭建 (开发机 & RDK)
 
+**请使用 [huggingface/lerobot](https://github.com/huggingface/lerobot) 仓库，不要使用已过时的 `D-Robotics/lerobot` fork。本分支按 LeRobot v0.5.2 验证。**
+
 我们需要准备两套环境：
 *   **开发机 (PC/服务器)**: 负责 **模型训练** 和 **模型导出编译** (GPU 必需)。
 *   **RDK 板端**: 负责 **标定、采集、遥操** 和 **最终推理**。
@@ -50,8 +72,8 @@
 建议使用 Ubuntu 20.04/22.04 + NVIDIA GPU。
 
 ```bash
-# 1. 克隆 D-Robotics 仓库
-git clone https://github.com/D-Robotics/lerobot.git
+# 1. 克隆 Hugging Face LeRobot 仓库
+git clone https://github.com/huggingface/lerobot.git
 cd lerobot
 git clone https://github.com/D-Robotics/rdk_LeRobot_tools.git
 cd rdk_LeRobot_tools && git checkout s600 && cd ..
@@ -67,8 +89,8 @@ pip install onnx onnxsim termcolor tqdm safetensors
 SSH 登录到 RDK S600：
 
 ```bash
-# 1. 同样克隆 D-Robotics 的 LeRobot 和本工具仓库
-git clone https://github.com/D-Robotics/lerobot.git
+# 1. 同样克隆 Hugging Face LeRobot 和本工具仓库
+git clone https://github.com/huggingface/lerobot.git
 cd lerobot
 git clone https://github.com/D-Robotics/rdk_LeRobot_tools.git
 cd rdk_LeRobot_tools && git checkout s600 && cd ..
@@ -363,14 +385,78 @@ combine_jobs: 6
 
 该配置会生成与 S600 运行时一致的校准数据：图像先从 `0..255` 缩放到 `0..1`，再执行 `(image - mean) / std`。
 
-### 7.2 导出 ONNX
+### 7.2 导出 ONNX 及编译配置
 
 ```bash
-# 1. 导出 ONNX (开发机)
+# 在开发机上运行
 cd rdk_LeRobot_tools
 python export_bpu_actpolicy.py --config bpu_export_config_s600_calfix.yaml
 ```
-*成功标志：`export_path` 指定的目录中生成 `build_all.sh`、ONNX 文件和校准数据。*
+
+运行该脚本后，它会按顺序执行以下 6 个步骤：
+
+**① 加载模型与数据集，自动检测相机**
+
+脚本从 `act_path` 加载 PyTorch ACT checkpoint，从 `dataset.root` 读取数据集。然后从数据集中取一个 batch，扫描所有以 `observation.images.` 开头的字段，自动推断出相机名称（例如 `front`、`laptop`）。
+
+**② 导出前后处理归一化参数**
+
+从 checkpoint 目录中的 processor safetensors 文件读取训练时保存的统计量：
+*   `{camera_name}_mean.npy` / `{camera_name}_std.npy`：图像归一化的均值和标准差。
+*   `action_mean.npy` / `action_std.npy`：state 输入的归一化参数（来自 preprocessor）。
+*   `action_mean_unnormalize.npy` / `action_std_unnormalize.npy`：action 输出的反归一化参数（来自 postprocessor）。
+
+这些 `.npy` 文件会在板端推理时由 `bpu_control_robot.py` 加载，用于 BPU 外部的手动归一化/反归一化。
+
+**③ 导出 VisionEncoder ONNX**
+
+将 ACT 的 `backbone`（ResNet）和 `encoder_img_feat_input_proj`（特征投影层）提取出来，封装为 `BPU_ACTPolicy_VisionEncoder` 子模型。输入是一张归一化后的图像，输出是视觉特征图 `[1, 512, 15, 20]`。导出为 ONNX 后，若 `onnx_sim: true` 则自动调用 onnxsim 简化图结构。
+
+**④ 导出 TransformerLayers ONNX**
+
+将 ACT 的 encoder + decoder + action_head 部分封装为 `BPU_ACTPolicy_TransformerLayers` 子模型。它有两个（或多个）输入：
+*   `states`：归一化后的 6 维关节状态 `[1, 6]`
+*   `{camera_name}_features`：VisionEncoder 输出的视觉特征 `[1, 512, 15, 20]`
+
+输出是 `Actions [1, 100, 6]`（ACT 的 100 步 action chunk）。同时保存一份 `new_actions.npy` 到 `bpu_output/`，用于精度验证。
+
+**⑤ 生成 OE 编译配置和构建脚本**
+
+为两个子模型分别生成：
+*   `config_BPU_ACTPolicy_VisionEncoder.yaml` / `config_BPU_ACTPolicy_TransformerLayers.yaml`：OE `hb_compile` 使用的编译配置，包含 ONNX 路径、校准数据目录、`march: nash-p`、`norm_type: no_preprocess` 等。
+*   `build_BPU_ACTPolicy_VisionEncoder.sh` / `build_BPU_ACTPolicy_TransformerLayers.sh`：各自的编译脚本。
+*   `build_all.sh`：一键编译两个子模型的总入口脚本。
+
+**⑥ 生成量化校准数据**
+
+遍历训练数据集（最多 `cal_num` 个样本），对每个样本：
+*   图像先做 `0..255 → /255.0 → (image - mean) / std`，保存为 VisionEncoder 的校准数据。
+*   将归一化后的图像送入 VisionEncoder 前向推理，得到视觉特征，保存为 Transformer 的 `{camera_name}/` 校准数据。
+*   归一化后的 state 保存为 Transformer 的 `state/` 校准数据。
+
+*成功标志：`export_path` 指定的目录中生成了如下结构：*
+
+```
+export_path/
+├── BPU_ACTPolicy_VisionEncoder/
+│   ├── BPU_ACTPolicy_VisionEncoder.onnx
+│   ├── config_BPU_ACTPolicy_VisionEncoder.yaml
+│   ├── calibration_data_BPU_ACTPolicy_VisionEncoder/
+│   └── build_BPU_ACTPolicy_VisionEncoder.sh
+├── BPU_ACTPolicy_TransformerLayers/
+│   ├── BPU_ACTPolicy_TransformerLayers.onnx
+│   ├── config_BPU_ACTPolicy_TransformerLayers.yaml
+│   ├── calibration_data_BPU_ACTPolicy_TransformerLayers/
+│   │   ├── state/
+│   │   └── front/
+│   └── build_BPU_ACTPolicy_TransformerLayers.sh
+├── bpu_output/
+│   ├── action_mean.npy / action_std.npy
+│   ├── action_mean_unnormalize.npy / action_std_unnormalize.npy
+│   ├── front_mean.npy / front_std.npy
+│   └── new_actions.npy
+└── build_all.sh
+```
 
 ### 7.3 编译 BPU 模型 (OpenExplorer Docker 环境)
 
@@ -383,7 +469,11 @@ python export_bpu_actpolicy.py --config bpu_export_config_s600_calfix.yaml
         ```
 
 2.  **获取并加载离线镜像**（S600 推荐 OE 3.7.0 S100/S600 CPU 镜像）
-    *   镜像下载页：[https://developer.d-robotics.cc/rdk_doc/rdk_s/Advanced_development/toolchain_development/overview#docker-%E9%95%9C%E5%83%8F](https://developer.d-robotics.cc/rdk_doc/rdk_s/Advanced_development/toolchain_development/overview#docker-%E9%95%9C%E5%83%8F)
+    *   工具链版本发布汇总帖（持续更新）：[https://forum.d-robotics.cc/t/topic/35229](https://forum.d-robotics.cc/t/topic/35229)
+    *   下载离线镜像包：
+        ```bash
+        wget https://d-robotics-aitoolchain.oss-cn-beijing.aliyuncs.com/oe/3.7.0/ai_toolchain_ubuntu_22_s100_s600_cpu_v3.7.0.tar
+        ```
     *   加载镜像：
         ```bash
         sudo docker load -i ai_toolchain_ubuntu_22_s100_s600_cpu_v3.7.0.tar
@@ -451,7 +541,7 @@ bpu_output/
 ## 8. 板端部署与推理 (RDK S600)
 
 ### 前提条件
-1.  已安装 `D-Robotics/lerobot` 仓库的 LeRobot 和 `hbm-runtime`。
+1.  已安装 [huggingface/lerobot](https://github.com/huggingface/lerobot) 和 `hbm-runtime`。
 2.  已将 **`bpu_output`** 文件夹（包含量化后的 `.hbm` 模型和校准参数）传输到板端。
 3.  **硬件配置**: 确保机械臂端口、相机索引、相机名称与训练/导出时一致；校准文件由 `lerobot-calibrate` 自动保存到 `~/.cache/huggingface/lerobot/calibration/`。
 
@@ -482,3 +572,15 @@ bpu_output/
 
 *   **机械臂不动**: 检查 `ls /dev/ttyACM*`；确认 `--robot-port` 正确。
 *   **相机报错**: 确认 `--camera-index` 和 `--camera-name` 与 `bpu_output/*_mean.npy` 一致。
+
+### BPU 推理性能基准
+
+在 RDK S600 上对 ACT 模型各模块进行纯 BPU 性能测试（20 次 warmup + 200 次正式采样）：
+
+| 模块 | 平均推理时间 | 帧率 |
+| :--- | :--- | :--- |
+| VisionEncoder | 3.92 ms | 255.0 inf/s |
+| TransformerLayers | 2.29 ms | 436.4 inf/s |
+| **完整 ACT** | **6.20 ms** | **161.2 inf/s** |
+
+ACT 一次输出 100 步 action chunk，因此在 30 fps 控制频率下，每 3.33 秒仅需一次 BPU 推理（6.20 ms），其余时间 BPU 处于空闲状态。
