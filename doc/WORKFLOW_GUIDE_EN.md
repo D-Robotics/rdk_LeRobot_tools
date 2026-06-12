@@ -15,7 +15,9 @@ This document, based on [Hugging Face LeRobot](https://github.com/huggingface/le
 
 **Pick and Place Demo:**
 
-![20260612-114149|video](upload://9yYeSZ2FmznNnd1p9gqqnxqCYmu.mp4)
+<div align="center">
+  <img src="./assets/demo_pick_place.gif" width="480" alt="Pick and Place Demo" />
+</div>
 
 > Note that this demo is just a simple Pick and Place demonstration with only 33 episodes of training data collected. Below is a side-by-side visualization of 6 training episodes (Episode 0/6/13/20/26/32):
 

@@ -15,7 +15,9 @@
 
 **Pick and Place 演示：**
 
-![20260612-114149|video](upload://9yYeSZ2FmznNnd1p9gqqnxqCYmu.mp4)
+<div align="center">
+  <img src="./assets/demo_pick_place.gif" width="480" alt="Pick and Place 演示" />
+</div>
 
 > 这个演示只是简单的 Pick and Place 展示，仅采集了 33 组训练数据。以下是 6 组训练数据（Episode 0/6/13/20/26/32）的并排可视化：
 
