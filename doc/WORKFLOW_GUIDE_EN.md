@@ -6,8 +6,8 @@ English| [简体中文](./WORKFLOW_GUIDE_CN.md)
 > But over the past year, things have changed quite a bit:
 >
 > - **LeRobot framework has been significantly upgraded**: It has evolved from the initial v0.1/v0.2 all the way to v0.5.2. The API has been almost completely rewritten — the dataset format has progressed from v2.1 (one episode per file) to v3.0 (multiple episodes consolidated into packages), and the training/collection/calibration CLI interfaces have been replaced with a new set including `lerobot-record`, `lerobot-train`, `lerobot-calibrate`, etc.
-> - **D-Robotics launched the RDK S600**: With stronger computing power, larger BPU memory, paired with the OE 3.7.0 toolchain and `nash-p` architecture, it has become the new primary platform for edge deployment.
-> - **The old tutorials gradually fell behind**: Community members have reported that following the old documentation leads to issues like incompatible dataset formats, CLI commands that can't be found, and misaligned calibration quantization ranges.
+> - **D-Robotics launched the RDK S600**: With stronger computing power, paired with the OE 3.7.0 toolchain and `nash-p` architecture, it has become the new primary platform for edge deployment.
+> - **The old tutorials gradually fell behind**: Community members have reported that following the old documentation leads to issues like incompatible dataset formats, commands that can't be found, and misaligned calibration quantization ranges.
 >
 > So we re-examined the entire pipeline, verified the full workflow from scratch based on **LeRobot v0.5.2 + RDK S600 + SO-101 robot arm**, updated the export scripts and toolchain configurations. This document is the complete, updated deployment guide — whether you're new to LeRobot or migrating from the old tutorials, you can start here.
 
