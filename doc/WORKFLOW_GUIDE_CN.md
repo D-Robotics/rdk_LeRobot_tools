@@ -6,12 +6,11 @@
 > 但过去这一年里，事情发生了不少变化：
 >
 > - **LeRobot 框架大幅升级**：从最初的 v0.1/v0.2 一路迭代到了 v0.5.2。API 几乎全部重写——数据集格式从 v2.1（一条 episode 一个文件）演进到了 v3.0（多 episode 合并打包），训练/采集/标定的命令行接口也换成了 `lerobot-record`、`lerobot-train`、`lerobot-calibrate` 等一套全新 CLI。
-> - **地瓜机器人推出了 RDK S600**：更强的算力，搭配 OE 3.7.0 工具链和 `nash-p` 架构，成为端侧部署的新主力平台。
 > - **老教程逐渐跟不上**：论坛里陆续有朋友反馈，按旧文档操作会遇到数据集格式不兼容、命令找不到、校准量化范围对不上等问题。
 >
-> 所以我们重新梳理了整条链路，基于 **LeRobot v0.5.2 + RDK S600 + SO-101 机械臂**，从头验证了全流程，并更新了导出脚本和工具链配置。这篇文档就是更新后的完整落地指南——无论你是第一次接触 LeRobot 的新朋友，还是从旧版教程迁移过来的老用户，都可以从这里开始。
+> 所以我们重新梳理了整条链路，基于 **LeRobot v0.5.2 + RDK S100 + SO-101/SO100 机械臂**，从头验证了全流程，并更新了导出脚本和工具链配置。这篇文档就是更新后的完整落地指南——无论你是第一次接触 LeRobot 的新朋友，还是从旧版教程迁移过来的老用户，都可以从这里开始。
 
-本文档基于 [Hugging Face LeRobot](https://github.com/huggingface/lerobot) 仓库及本工具链，提供从零开始在 **SO-101 机械臂** 上实现 ACT 策略并部署到 **RDK S600** 的详细步骤。SO-101 机械臂装配、电机设置和校准流程也可参考官方 [SO-101 文档](https://huggingface.co/docs/lerobot/so101)。
+本文档基于 [Hugging Face LeRobot](https://github.com/huggingface/lerobot) 仓库及本工具链，提供从零开始在 **SO-101/SO100 机械臂** 上实现 ACT 策略并部署到 **RDK S100** 的详细步骤。SO-101 机械臂装配、电机设置和校准流程也可参考官方 [SO-101 文档](https://huggingface.co/docs/lerobot/so101)。
 
 **Pick and Place 演示：**
 
@@ -40,9 +39,9 @@
   </table>
 </div>
 
-> **🚀 核心推荐：RDK S600 全流程方案**
+> **🚀 核心推荐：RDK S100 全流程方案**
 > 
-> **RDK S600 不仅仅是一个推理终端，它是全功能的边缘计算平台！**
+> **RDK S100 不仅仅是一个推理终端，它是全功能的边缘计算平台！**
 > 除了模型训练（需要 GPU）外，您可以直接在 RDK 上完成以下所有工作：
 > *   ✅ **硬件标定** (Calibration)
 > *   ✅ **遥操作测试** (Teleoperation)
@@ -56,8 +55,8 @@
 > **版本说明**：
 > *   **LeRobot**: 本分支按 LeRobot v0.5.2 验证。
 > *   **Python 关键依赖**: `datasets 4.8.5`, `torch 2.7.1+cu126`, `onnxruntime 1.26.0`, `onnx 1.21.0`, `numpy 2.2.6`。
-> *   **硬件**: 本文档面向 **RDK S600 + SO-101/SO100 单臂 ACT**。
-> *   **BPU 编译目标**: S600 使用 `nash-p`，推荐 OE 3.7.0 S100/S600 工具链。
+> *   **硬件**: 本文档面向 **RDK S100 + SO-101/SO100 单臂 ACT**。
+> *   **BPU 编译目标**: S100 使用 `nash-e`，推荐 OE 3.7.0 S100/S600 工具链。
 
 ---
 
@@ -78,7 +77,7 @@
 git clone https://github.com/huggingface/lerobot.git
 cd lerobot
 git clone https://github.com/D-Robotics/rdk_LeRobot_tools.git
-cd rdk_LeRobot_tools && git checkout s600 && cd ..
+cd rdk_LeRobot_tools && git checkout s100 && cd ..
 
 # 2. 安装依赖
 conda activate lerobot
@@ -86,27 +85,45 @@ pip install -e ".[feetech]"
 pip install onnx onnxsim termcolor tqdm safetensors
 ```
 
-### 1.2 RDK 板端环境 (用于采集与推理)
+### 1.2 RDK S100 板端环境 (用于采集与推理)
 
-SSH 登录到 RDK S600：
+SSH 登录到 RDK S100：
+
+板端使用 **Python 3.12** + **LeRobot v0.5.2** + **C++ pybind11 BPU 扩展**。后者位于本仓库 `bpu_runtime/` 目录下，替代 `hbm-runtime` PyPI 包——该包的预编译 `.so` 绑定 Python 3.10，无法在 Python 3.12 下 import。C++ 扩展直接链接系统 BPU 库（`libdnn.so`、`libhbucp.so`），可以针对任意 Python 版本编译。
 
 ```bash
-# 1. 同样克隆 Hugging Face LeRobot 和本工具仓库
+# 1. 安装 uv 并克隆仓库
+curl -LsSf https://astral.sh/uv/install.sh | sh
+export PATH="$HOME/.local/bin:$PATH"
+
+cd ~
 git clone https://github.com/huggingface/lerobot.git
 cd lerobot
-git clone https://github.com/D-Robotics/rdk_LeRobot_tools.git
-cd rdk_LeRobot_tools && git checkout s600 && cd ..
-pip install -e ".[feetech]"
+uv venv --python 3.12 .venv
+source .venv/bin/activate
 
-# 2. 安装 BPU 运行时 (仅推理需要，但建议安装)
-pip install hbm-runtime
+git clone https://github.com/D-Robotics/rdk_LeRobot_tools.git
+cd rdk_LeRobot_tools && git checkout s100 && cd ..
+uv pip install -e ".[feetech]"
+uv pip install onnx onnxsim termcolor tqdm safetensors numpy
+
+# 2. 编译 C++ BPU 推理扩展
+cd rdk_LeRobot_tools/bpu_runtime
+uv pip install pybind11
+mkdir build && cd build
+cmake -DPython3_EXECUTABLE=$(which python) \
+      -Dpybind11_DIR=$(python -c "import pybind11; print(pybind11.get_cmake_dir())") \
+      ..
+make -j$(nproc)
 ```
+
+编译成功后，`bpu_runtime/build/` 下会生成 `bpu_act_runtime.cpython-312-aarch64-linux-gnu.so`。`bpu_control_robot.py` 会自动发现并加载该扩展，无需手动设置 `PYTHONPATH`。详见仓库 [README_CN.md](../README_CN.md#4-c-bpu-推理扩展-bpu_runtime) 中的 C++ runtime 章节。
 
 ---
 
 ## 2. 硬件配置与组装 (SO-101)
 
-**提示：本章节操作可以在开发机上进行，也可以直接在 RDK S600 上连接屏幕或 SSH 进行！**
+**提示：本章节操作可以在开发机上进行，也可以直接在 RDK S100 上连接屏幕或 SSH 进行！**
 
 ### 2.1 设置电机 ID (Set motor IDs)
 
@@ -165,9 +182,9 @@ pip install hbm-runtime
 *   **Handle (Leader)**:
     <video controls width="100%" src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/lerobot/Leader_v2.mp4" type="video/mp4"></video>
 
-### 2.3 查找端口 (RDK S600 推荐)
+### 2.3 查找端口 (RDK S100 推荐)
 
-将组装好的机械臂连接到 RDK S600 的 USB 口。LeRobot v0.5.2 推荐使用：
+将组装好的机械臂连接到 RDK S100 的 USB 口。LeRobot v0.5.2 推荐使用：
 
 ```bash
 lerobot-find-port
@@ -185,7 +202,7 @@ sudo chmod 666 /dev/ttyACM1
 
 ## 3. 校准 (Calibration)
 
-**推荐在 RDK S600 上直接运行。**
+**推荐在 RDK S100 上直接运行。**
 校准是保证主从手同步和模型迁移有效的关键。LeRobot v0.5.2 使用 `lerobot-calibrate` 命令，流程与 Hugging Face 官方 [SO-101 文档](https://huggingface.co/docs/lerobot/so101) 一致：
 
 1. 先把机械臂摆到各关节运动范围的中位。
@@ -201,7 +218,7 @@ sudo chmod 666 /dev/ttyACM1
 lerobot-calibrate \
   --robot.type=so101_follower \
   --robot.port=/dev/ttyACM0 \
-  --robot.id=s600_follower
+  --robot.id=s100_follower
 ```
 
 ### 3.2 校准主手 (Leader)
@@ -210,14 +227,14 @@ lerobot-calibrate \
 lerobot-calibrate \
   --teleop.type=so101_leader \
   --teleop.port=/dev/ttyACM1 \
-  --teleop.id=s600_leader
+  --teleop.id=s100_leader
 ```
 
 ---
 
 ## 4. 摄像头配置 (Cameras)
 
-**推荐在 RDK S600 上直接运行。**
+**推荐在 RDK S100 上直接运行。**
 LeRobot v0.5.2 不再通过 `configs.py` / `so101.yaml` 改相机，而是在 `lerobot-record` / `bpu_control_robot.py` 的命令行里直接传 `--robot.cameras` 或 `--camera-index`。
 
 ### 4.1 查找摄像头索引
@@ -251,7 +268,7 @@ lerobot-find-cameras
 
 ## 5. 数据采集 (Data Collection)
 
-**推荐在 RDK S600 上直接运行。**
+**推荐在 RDK S100 上直接运行。**
 收集高质量的演示数据是训练成功的关键。建议采集 **50 条** 以上的成功轨迹。
 
 ### 5.1 运行采集脚本
@@ -261,10 +278,10 @@ lerobot-record \
   --robot.type=so101_follower \
   --robot.port=/dev/ttyACM0 \
   --robot.cameras="{front: {type: opencv, index_or_path: 0, width: 640, height: 480, fps: 30}}" \
-  --robot.id=s600_follower \
+  --robot.id=s100_follower \
   --teleop.type=so101_leader \
   --teleop.port=/dev/ttyACM1 \
-  --teleop.id=s600_leader \
+  --teleop.id=s100_leader \
   --dataset.repo_id=my_id/so101_pick_place \
   --dataset.root=/path/to/datasets/so101_pick_place \
   --dataset.num_episodes=50 \
@@ -287,7 +304,7 @@ lerobot-record \
 | `--robot.port` | 从手串口 | 通过 `lerobot-find-port` 获取 |
 | `--teleop.type` | 主手机械臂类型 | `so101_leader` |
 | `--teleop.port` | 主手串口 | 通过 `lerobot-find-port` 获取 |
-| `--robot.cameras` | 相机配置 | S600 USB 摄像头一般使用 `opencv` + `index_or_path` |
+| `--robot.cameras` | 相机配置 | S100 USB 摄像头一般使用 `opencv` + `index_or_path` |
 | `--dataset.repo_id` | 数据集 ID | 格式 `user/dataset_name` |
 | `--dataset.root` | 本地保存路径 | 建议显式指定，便于后续拷贝到开发机训练 |
 | `--dataset.num_episodes` | 计划采集总条数 | `50` 条起步，多多益善 |
@@ -368,7 +385,7 @@ lerobot-train \
 
 ### 7.1 配置导出参数
 
-S600 / SO100 ACT 可直接参考 `rdk_LeRobot_tools/bpu_export_config_s600_calfix.yaml`：
+S100 / SO100 ACT 可直接参考 `rdk_LeRobot_tools/bpu_export_config.yaml`：
 
 ```yaml
 dataset:
@@ -378,21 +395,21 @@ policy:
   type: "act"
   device: "cpu"
 act_path: "/path/to/outputs/train/act_so100/checkpoints/008000/pretrained_model"
-export_path: "/path/to/bpu_export_act_so100_s600_calfix"
+export_path: "/path/to/bpu_export_act_so100_s100_calfix"
 cal_num: 100
 onnx_sim: true
-type: "nash-p"       # RDK S600
+type: "nash-e"       # RDK S100
 combine_jobs: 6
 ```
 
-该配置会生成与 S600 运行时一致的校准数据：图像先从 `0..255` 缩放到 `0..1`，再执行 `(image - mean) / std`。
+该配置会生成与 S100 运行时一致的校准数据：图像先从 `0..255` 缩放到 `0..1`，再执行 `(image - mean) / std`。
 
 ### 7.2 导出 ONNX 及编译配置
 
 ```bash
 # 在开发机上运行
 cd rdk_LeRobot_tools
-python export_bpu_actpolicy.py --config bpu_export_config_s600_calfix.yaml
+python export_bpu_actpolicy.py --config bpu_export_config.yaml
 ```
 
 运行该脚本后，它会按顺序执行以下 6 个步骤：
@@ -425,7 +442,7 @@ python export_bpu_actpolicy.py --config bpu_export_config_s600_calfix.yaml
 **⑤ 生成 OE 编译配置和构建脚本**
 
 为两个子模型分别生成：
-*   `config_BPU_ACTPolicy_VisionEncoder.yaml` / `config_BPU_ACTPolicy_TransformerLayers.yaml`：OE `hb_compile` 使用的编译配置，包含 ONNX 路径、校准数据目录、`march: nash-p`、`norm_type: no_preprocess` 等。
+*   `config_BPU_ACTPolicy_VisionEncoder.yaml` / `config_BPU_ACTPolicy_TransformerLayers.yaml`：OE `hb_compile` 使用的编译配置，包含 ONNX 路径、校准数据目录、`march: nash-e`、`norm_type: no_preprocess` 等。
 *   `build_BPU_ACTPolicy_VisionEncoder.sh` / `build_BPU_ACTPolicy_TransformerLayers.sh`：各自的编译脚本。
 *   `build_all.sh`：一键编译两个子模型的总入口脚本。
 
@@ -470,7 +487,7 @@ export_path/
         sudo docker run --rm hello-world
         ```
 
-2.  **获取并加载离线镜像**（S600 推荐 OE 3.7.0 S100/S600 CPU 镜像）
+2.  **获取并加载离线镜像**（S100 推荐 OE 3.7.0 S100/S600 CPU 镜像）
     *   工具链版本发布汇总帖（持续更新）：[https://forum.d-robotics.cc/t/topic/35229](https://forum.d-robotics.cc/t/topic/35229)
     *   下载离线镜像包：
         ```bash
@@ -493,12 +510,12 @@ export_path/
          <docker-image-name> /bin/bash
         ```
     *   **常用替换项**：
-        - S600 推荐镜像名：`registry.d-robotics.cc/deliver/ai_toolchain_ubuntu_22_s100_s600_cpu:v3.7.0`
+        - S100 推荐镜像名：`registry.d-robotics.cc/deliver/ai_toolchain_ubuntu_22_s100_s600_cpu:v3.7.0`
 
 4.  **在容器内编译模型**
     *   进入挂载目录并执行编译脚本：
         ```bash
-        cd /workspace/bpu_export_act_so100_s600_calfix
+        cd /workspace/bpu_export_act_so100_s100_calfix
         bash build_all.sh
         ```
     *   编译输出通常位于 `export_path` 下的 `bpu_output/` 和各子模型目录中（根据脚本输出确认）。
@@ -514,7 +531,7 @@ export_path/
 ```bash
 # 直接在宿主机运行一次性编译命令
 docker run --rm \
-  -v /path/to/bpu_export_act_so100_s600_calfix:/workspace \
+  -v /path/to/bpu_export_act_so100_s100_calfix:/workspace \
   -w /workspace \
   registry.d-robotics.cc/deliver/ai_toolchain_ubuntu_22_s100_s600_cpu:v3.7.0 \
   bash build_all.sh
@@ -540,12 +557,13 @@ bpu_output/
 
 ---
 
-## 8. 板端部署与推理 (RDK S600)
+## 8. 板端部署与推理 (RDK S100)
 
 ### 前提条件
-1.  已安装 [huggingface/lerobot](https://github.com/huggingface/lerobot) 和 `hbm-runtime`。
-2.  已将 **`bpu_output`** 文件夹（包含量化后的 `.hbm` 模型和校准参数）传输到板端。
-3.  **硬件配置**: 确保机械臂端口、相机索引、相机名称与训练/导出时一致；校准文件由 `lerobot-calibrate` 自动保存到 `~/.cache/huggingface/lerobot/calibration/`。
+1.  已在 Python 3.12 虚拟环境中安装 [huggingface/lerobot](https://github.com/huggingface/lerobot) v0.5.2。
+2.  已编译 C++ BPU 推理扩展（`bpu_runtime/build/bpu_act_runtime.*.so`），作为 `hbm-runtime` 的替代品。详见第 1.2 节。
+3.  已将 **`bpu_output`** 文件夹（包含量化后的 `.hbm` 模型和校准参数）传输到板端。
+4.  **硬件配置**: 确保机械臂端口、相机索引、相机名称与训练/导出时一致；校准文件由 `lerobot-calibrate` 自动保存到 `~/.cache/huggingface/lerobot/calibration/`。
 
 ### 运行 BPU 加速推理
 
@@ -570,19 +588,22 @@ bpu_output/
 
     ACT 一次推理会输出 100 步 action chunk，脚本会自动从 `new_actions.npy` 推断 `n_action_steps`。不要为了调试传 `--n-action-steps 1`，否则会改变 ACT 的运行语义。
 
+    > **BPU 推理扩展说明**：`bpu_control_robot.py` 会先尝试 `import hbm_runtime`。如果系统装的 `hbm_runtime.so` 因为 Python 版本不匹配（LeRobot v0.5.2 要求 Python ≥ 3.12，而预编译 `hbm_runtime.so` 绑定 Python 3.10）无法 import，脚本会自动 fallback 到本仓库 `bpu_runtime/build/` 下的 C++ pybind11 扩展 `bpu_act_runtime`。该扩展暴露的 `BPUACTRuntime` 类在 C++ 内部完成模型加载、归一化参数读取、tensor 推理和 action 反归一化，是 `hbm_runtime.HB_HBMRuntime` 的直接替代品，对调用方完全透明。
+
 ### 故障排查
 
 *   **机械臂不动**: 检查 `ls /dev/ttyACM*`；确认 `--robot-port` 正确。
 *   **相机报错**: 确认 `--camera-index` 和 `--camera-name` 与 `bpu_output/*_mean.npy` 一致。
+*   **`ImportError: hbm_runtime`**: 正常现象。确认 `bpu_runtime/build/bpu_act_runtime.*.so` 已编译；脚本会自动 fallback。
 
 ### BPU 推理性能基准
 
-在 RDK S600 上对 ACT 模型各模块进行纯 BPU 性能测试（20 次 warmup + 200 次正式采样）：
+在 RDK S100 上对 ACT 模型各模块进行纯 BPU 性能测试（20 次 warmup + 200 次正式采样）：
 
 | 模块 | 平均推理时间 | 帧率 |
 | :--- | :--- | :--- |
-| VisionEncoder | 3.92 ms | 255.0 inf/s |
-| TransformerLayers | 2.29 ms | 436.4 inf/s |
-| **完整 ACT** | **6.20 ms** | **161.2 inf/s** |
+| VisionEncoder | 4.14 ms | 241.7 inf/s |
+| TransformerLayers | 3.30 ms | 302.8 inf/s |
+| **完整 ACT** | **7.54 ms** | **132.6 inf/s** |
 
-ACT 一次输出 100 步 action chunk，因此在 30 fps 控制频率下，每 3.33 秒仅需一次 BPU 推理（6.20 ms），其余时间 BPU 处于空闲状态。
+ACT 一次输出 100 步 action chunk，因此在 30 fps 控制频率下，每 3.33 秒仅需一次 BPU 推理（7.54 ms），其余时间 BPU 处于空闲状态。

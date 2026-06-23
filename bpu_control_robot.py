@@ -40,8 +40,23 @@ from lerobot.robots.so_follower import SO100Follower, SO100FollowerConfig
 
 try:
     from hbm_runtime import HB_HBMRuntime
-except ImportError as exc:
-    raise SystemExit("hbm_runtime not found, please check!") from exc
+except ImportError:
+    import sys as _sys
+    _bpu_ext_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bpu_runtime", "build")
+    if not os.path.exists(_bpu_ext_dir):
+        _bpu_ext_dir = "/root/lerobot_act_bpu/build_pybind"
+    _sys.path.insert(0, _bpu_ext_dir)
+    from bpu_act_runtime import BPUACTRuntime as _BPUACTRuntime
+
+    class HB_HBMRuntime:
+        """Drop-in replacement for hbm_runtime.HB_HBMRuntime using C++ pybind11 extension."""
+
+        def __init__(self, model_paths):
+            self._rt = _BPUACTRuntime(model_paths)
+
+        def run(self, inputs, model_name=""):
+            output = self._rt.run(inputs, model_name=model_name)
+            return {model_name: output}
 
 logger = logging.getLogger(__name__)
 

@@ -2,32 +2,28 @@
 
 # RDK LeRobot Tools
 
-**此 `s600` 分支用于 LeRobot v0.5.2 的 ACT 模型导出与 RDK S600 BPU 部署验证。**
+**此 `s100` 分支用于 LeRobot v0.5.2 的 ACT 模型导出与 RDK S100 BPU 部署验证。**
 
-**注意：S600 请使用 `nash-p` / OE 3.7.0 S100/S600 工具链。**
+**注意：S100 请使用 `nash-e` / OE 3.7.0 S100/S600 工具链。**
 
 **Pick and Place 演示：**
 
-<div align="center">
-  <img src="./doc/assets/demo_pick_place.gif" width="480" alt="Pick and Place 演示" />
-</div>
+
 
 > 需要说明的是，这个演示只是简单的 Pick and Place 展示，仅采集了 33 组训练数据。以下是 6 组训练数据（Episode 0/6/13/20/26/32）的并排可视化：
 
-<div align="center">
-  <img src="./doc/assets/demo_episodes_grid.gif" width="640" alt="训练数据可视化 - 6 组 Episode 并排展示" />
-</div>
 
-本仓库提供了一套工具，用于将基于 [Hugging Face LeRobot](https://github.com/huggingface/lerobot) 框架训练的 ACT 策略模型导出并部署到地瓜机器人 RDK S600 上，利用 BPU 进行高效推理。
+
+本仓库提供了一套工具，用于将基于 [Hugging Face LeRobot](https://github.com/huggingface/lerobot) 框架训练的 ACT 策略模型导出并部署到地瓜机器人 RDK S100 上，利用 BPU 进行高效推理。
 
 全流程文档可以参考：👉 *[全流程文档](./doc/WORKFLOW_GUIDE_CN.md)*
 
 ## 目录结构
 
 - `export_bpu_actpolicy.py`: **模型导出脚本**（在开发机/训练服务器上运行）。用于将 PyTorch 权重转换为 ONNX 并生成 BPU 编译所需的配置文件和脚本。
-- `bpu_export_config_s600_calfix.yaml`: **S600 推荐配置**。LeRobot v0.5.2 / SO100 ACT / `nash-p`。
-- `bpu_export_config.yaml`: 其他平台通用模板（默认 `nash-e`，S600 不要用）。
+- `bpu_export_config.yaml`: **通用配置模板**（默认 `nash-e`，适用于 S100）。复制后修改即可。
 - `bpu_control_robot.py`: **板端部署脚本**（在 RDK 板端运行）。加载编译好的 BPU 模型并控制机器人。
+- `bpu_runtime/`: **C++ BPU 推理扩展**（pybind11）。替代 `hbm-runtime` Python 包，使部署可以在 Python 3.12 + LeRobot v0.5.2 环境下运行，不受系统 `hbm_runtime.so` 绑定 Python 3.10 的限制。
 
 ## 1. 环境准备
 
@@ -55,31 +51,72 @@ conda activate lerobot
 git clone https://github.com/huggingface/lerobot.git
 cd lerobot
 git clone https://github.com/D-Robotics/rdk_LeRobot_tools.git
-cd rdk_LeRobot_tools && git checkout s600 && cd ..
+cd rdk_LeRobot_tools && git checkout s100 && cd ..
 pip install -e ".[feetech]"
 pip install onnx onnxsim termcolor tqdm safetensors
 ```
 
 *注意：模型编译（ONNX -> HBM）需要在地瓜机器人提供的 Docker 工具链环境（OpenExplorer）中进行。*
 
-### 1.2 RDK 板端 (用于模型部署)
+### 1.2 RDK S100 板端 (用于模型部署)
 
-板端请同样使用 Hugging Face 官方 `huggingface/lerobot` 仓库：
+板端部署使用 **Python 3.12** + **LeRobot v0.5.2** + **C++ pybind11 BPU 扩展**（位于本仓库 `bpu_runtime/` 目录下）。
 
-1. **安装 LeRobot 和本工具仓库**:
-  ```bash
-    git clone https://github.com/huggingface/lerobot.git
-    cd lerobot
-    git clone https://github.com/D-Robotics/rdk_LeRobot_tools.git
-    cd rdk_LeRobot_tools && git checkout s600 && cd ..
-    pip install -e ".[feetech]"
-    # 本分支验证环境使用 datasets 4.8.5。
-    # 不要使用 D-Robotics/lerobot 仓库。
-  ```
-2. **安装 BPU 推理库**:
-  ```bash
-    pip install hbm-runtime
-  ```
+这替代了 `hbm-runtime` PyPI 包——该包的预编译 `.so` 绑定了 Python 3.10，无法在 Python 3.12 下 import。C++ 扩展直接链接系统 BPU 库（`libdnn.so`、`libhbucp.so`），可以针对任意 Python 版本编译。
+
+#### 步骤一：安装 uv 并创建 Python 3.12 虚拟环境
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+export PATH="$HOME/.local/bin:$PATH"
+
+cd ~
+git clone https://github.com/huggingface/lerobot.git
+cd lerobot
+uv venv --python 3.12 .venv
+source .venv/bin/activate
+```
+
+#### 步骤二：安装 LeRobot 和工具仓库
+
+```bash
+git clone https://github.com/D-Robotics/rdk_LeRobot_tools.git
+cd rdk_LeRobot_tools && git checkout s100 && cd ..
+uv pip install -e ".[feetech]"
+uv pip install onnx onnxsim termcolor tqdm safetensors numpy
+```
+
+#### 步骤三：编译 C++ BPU 推理扩展
+
+`bpu_runtime/` 目录包含一个 pybind11 模块，封装了 BPU C/C++ 推理 API（`hbDNN` / `hbUCP`），暴露了 `BPUACTRuntime` 类，是 `hbm_runtime.HB_HBMRuntime` 的直接替代品。
+
+```bash
+cd rdk_LeRobot_tools/bpu_runtime
+uv pip install pybind11
+mkdir build && cd build
+cmake -DPython3_EXECUTABLE=$(which python) \
+      -Dpybind11_DIR=$(python -c "import pybind11; print(pybind11.get_cmake_dir())") \
+      ..
+make -j$(nproc)
+```
+
+编译成功后，`bpu_runtime/build/` 下会生成 `bpu_act_runtime.cpython-312-aarch64-linux-gnu.so`。
+
+`bpu_control_robot.py` 会自动发现并 import 这个 `.so`——不需要手动设置 `PYTHONPATH`。脚本会先尝试 `hbm_runtime`（原版 PyPI 包），找不到时 fallback 到 C++ 扩展。
+
+#### 步骤四：验证编译结果
+
+```bash
+cd rdk_LeRobot_tools
+python -c "
+from bpu_act_runtime import BPUACTRuntime
+import numpy as np
+rt = BPUACTRuntime(['bpu_output/BPU_ACTPolicy_VisionEncoder.hbm',
+                     'bpu_output/BPU_ACTPolicy_TransformerLayers.hbm'])
+out = rt.run({'images': np.zeros((1,3,480,640),dtype=np.float32)}, model_name='VisionEncoder')
+print('Vision output:', {k: v.shape for k,v in out.items()})
+"
+```
 
 ## 2. 模型导出与编译 (在开发机上执行)
 
@@ -90,18 +127,18 @@ pip install onnx onnxsim termcolor tqdm safetensors
 仓库里其实有**两套配置文件**，作用不同：
 
 
-| 配置文件                                 | 谁使用                       | 作用                                          |
-| ------------------------------------ | ------------------------- | ------------------------------------------- |
-| `bpu_export_config_s600_calfix.yaml` | `export_bpu_actpolicy.py` | 指定 checkpoint、数据集、导出目录、`nash-p`、`cal_num` 等 |
-| `config_BPU_ACTPolicy_*.yaml`        | OE 工具链 `hb_compile`       | 指定 ONNX 路径、校准数据、量化/编译参数                     |
+| 配置文件                          | 谁使用                       | 作用                                          |
+| ----------------------------- | ------------------------- | ------------------------------------------- |
+| `bpu_export_config.yaml`      | `export_bpu_actpolicy.py` | 指定 checkpoint、数据集、导出目录、`nash-e`、`cal_num` 等 |
+| `config_BPU_ACTPolicy_*.yaml` | OE 工具链 `hb_compile`       | 指定 ONNX 路径、校准数据、量化/编译参数                     |
 
 
-也就是说：**你手写的是“导出阶段配置”；工具链吃的是导出脚本自动生成的 `config_*.yaml`。**
+也就是说：**你手写的是"导出阶段配置"；工具链吃的是导出脚本自动生成的 `config_*.yaml`。**
 
 OE 工具链本身只接受 ONNX，不会直接读 PyTorch checkpoint。因此标准流程是：
 
 ```text
-bpu_export_config_s600_calfix.yaml
+bpu_export_config.yaml
         ↓
 export_bpu_actpolicy.py
         ↓
@@ -140,7 +177,7 @@ state + front_features → Transformer → Actions [1, 100, 6]
 
 #### `export_bpu_actpolicy.py` 会做什么？
 
-运行 `python export_bpu_actpolicy.py --config bpu_export_config_s600_calfix.yaml` 后，脚本会依次执行以下 6 个步骤：
+运行 `python export_bpu_actpolicy.py --config bpu_export_config.yaml` 后，脚本会依次执行以下 6 个步骤：
 
 **① 加载模型与数据集，自动检测相机**
 
@@ -166,7 +203,7 @@ state + front_features → Transformer → Actions [1, 100, 6]
 
 **⑤ 生成 OE 编译配置和构建脚本**
 
-为两个子模型分别生成 `config_BPU_ACTPolicy_*.yaml`、`build_*.sh` 和一键编译入口 `build_all.sh`。配置中包含 `march: nash-p`、`norm_type: no_preprocess` 等参数。
+为两个子模型分别生成 `config_BPU_ACTPolicy_*.yaml`、`build_*.sh` 和一键编译入口 `build_all.sh`。配置中包含 `march: nash-e`、`norm_type: no_preprocess` 等参数。
 
 **⑥ 生成量化校准数据**
 
@@ -183,7 +220,7 @@ state + front_features → Transformer → Actions [1, 100, 6]
 ```yaml
 model_parameters:
   onnx_model: BPU_ACTPolicy_VisionEncoder.onnx   # 要编译的 ONNX
-  march: nash-p                                  # S600 目标架构
+  march: nash-e                                   # S100 目标架构
 calibration_parameters:
   cal_data_dir: calibration_data_BPU_ACTPolicy_VisionEncoder
   cal_data_type: float32
@@ -236,16 +273,16 @@ Transformer 有两个输入：
 ### 第一步：导出 ONNX 及配置
 
 1. **修改配置文件**:
-  S600 / SO100 ACT 请直接编辑 `bpu_export_config_s600_calfix.yaml`：
+  S100 / SO100 ACT 请直接编辑 `bpu_export_config.yaml`：
   - `dataset.root`: 训练时使用的数据集根目录。
   - `act_path`: 训练好的 ACT checkpoint 路径。
   - `export_path`: 导出输出目录。
-  - `type`: S600 固定为 `nash-p`。
+  - `type`: S100 固定为 `nash-e`。
   - `cal_num`: 建议 `100`。
 2. **运行导出脚本**:
   ```bash
     cd rdk_LeRobot_tools
-    python export_bpu_actpolicy.py --config bpu_export_config_s600_calfix.yaml
+    python export_bpu_actpolicy.py --config bpu_export_config.yaml
   ```
     运行成功后，会在 `export_path` 指定目录下生成 ONNX、校准数据和 `build_all.sh`。
     **重要提示：** 导出脚本会从 LeRobot v0.5.2 checkpoint 的 processor safetensors 中读取图像、state 和 action 的归一化参数。图像校准数据会先确保输入是 `0..1` float，再做 `(image - mean) / std`，从而和板端运行时的 `uint8 -> /255.0 -> normalize` 保持一致。
@@ -255,11 +292,11 @@ Transformer 有两个输入：
 进入工具链 Docker 环境，运行上一步生成的编译脚本：
 
 ```bash
-cd /path/to/bpu_export_act_so100_s600_calfix
+cd /path/to/bpu_export_act_so100_s100_calfix
 bash build_all.sh
 ```
 
-S600 推荐使用 OE 3.7.0 S100/S600 Docker 工具链。工具链版本发布汇总（持续更新）：[https://forum.d-robotics.cc/t/topic/35229](https://forum.d-robotics.cc/t/topic/35229)
+S100 推荐使用 OE 3.7.0 S100/S600 Docker 工具链。工具链版本发布汇总（持续更新）：[https://forum.d-robotics.cc/t/topic/35229](https://forum.d-robotics.cc/t/topic/35229)
 
 ```bash
 # 下载离线镜像包
@@ -272,7 +309,7 @@ sudo docker load -i ai_toolchain_ubuntu_22_s100_s600_cpu_v3.7.0.tar
 
 ```bash
 docker run --rm \
-  -v /path/to/bpu_export_act_so100_s600_calfix:/workspace \
+  -v /path/to/bpu_export_act_so100_s100_calfix:/workspace \
   -w /workspace \
   registry.d-robotics.cc/deliver/ai_toolchain_ubuntu_22_s100_s600_cpu:v3.7.0 \
   bash build_all.sh
@@ -302,15 +339,16 @@ bpu_output/
     `-- ...
 ```
 
-## 3. 板端推理 (在 RDK 上执行)
+## 3. 板端推理 (在 RDK S100 上执行)
 
 板端推理的核心是使用 `**bpu_control_robot.py**` 脚本。
 
 ### 前提条件
 
-1. 已安装 [huggingface/lerobot](https://github.com/huggingface/lerobot) 和 `hbm-runtime`。
-2. 已将 `**bpu_output**` 文件夹（包含量化后的 `.hbm` 模型和校准参数）传输到板端。
-3. **硬件配置**: 通过命令行传入机械臂端口、相机索引和相机名称；校准文件由 `lerobot-calibrate` 保存。
+1. 已在 Python 3.12 虚拟环境中安装 [huggingface/lerobot](https://github.com/huggingface/lerobot) v0.5.2。
+2. 已编译 C++ BPU 推理扩展（`bpu_runtime/build/bpu_act_runtime.*.so`）。
+3. 已将 `**bpu_output**` 文件夹（包含量化后的 `.hbm` 模型和校准参数）传输到板端。
+4. **硬件配置**: 通过命令行传入机械臂端口、相机索引和相机名称；校准文件由 `lerobot-calibrate` 保存。
 
 ### 运行步骤
 
@@ -337,24 +375,77 @@ bpu_output/
 
 ### BPU 推理性能基准
 
-在 RDK S600 上对 ACT 模型各模块进行纯 BPU 性能测试（20 次 warmup + 200 次正式采样）：
+在 RDK S100 上对 ACT 模型各模块进行纯 BPU 性能测试（20 次 warmup + 200 次正式采样）：
 
 
 | 模块                | 平均推理时间      | 帧率              |
 | ----------------- | ----------- | --------------- |
-| VisionEncoder     | 3.92 ms     | 255.0 inf/s     |
-| TransformerLayers | 2.29 ms     | 436.4 inf/s     |
-| **完整 ACT**        | **6.20 ms** | **161.2 inf/s** |
+| VisionEncoder       | 4.14 ms     | 241.7 inf/s     |
+| TransformerLayers   | 3.30 ms     | 302.8 inf/s     |
+| **完整 ACT**        | **7.54 ms** | **132.6 inf/s** |
 
 
-ACT 一次输出 100 步 action chunk，因此在 30 fps 控制频率下，每 3.33 秒仅需一次 BPU 推理（6.20 ms），其余时间 BPU 处于空闲状态。
+ACT 一次输出 100 步 action chunk，因此在 30 fps 控制频率下，每 3.33 秒仅需一次 BPU 推理（7.54 ms），其余时间 BPU 处于空闲状态。
 
-## 4. 数据集格式说明 (v3.0 vs v2.1)
+## 4. C++ BPU 推理扩展 (`bpu_runtime/`)
+
+### 为什么需要 C++ 扩展？
+
+`hbm-runtime` PyPI 包（`hbm_runtime.HB_HBMRuntime`）是编译为 Python 3.10 的 C 扩展。而 LeRobot v0.5.2 要求 Python >= 3.12（`pyproject.toml` 中 `requires-python = ">=3.12"`）。这导致在 Python 3.12 下无法 `import hbm_runtime`。
+
+`bpu_runtime/` 目录包含一个自包含的 C++ pybind11 扩展，封装了相同的 BPU C API（`hbDNN` / `hbUCP`），暴露了 `BPUACTRuntime` 类，接口完全一致。它链接的是系统 BPU 库（`libdnn.so`、`libhbucp.so`），这些库与 Python 版本无关，因此可以针对任意 Python 版本编译。
+
+### 工作原理
+
+`bpu_control_robot.py` 会先尝试 `hbm_runtime`。如果不可用，则 import C++ 扩展，并用一个轻量适配器类匹配 `HB_HBMRuntime` 的接口：
+
+```python
+try:
+    from hbm_runtime import HB_HBMRuntime
+except ImportError:
+    from bpu_act_runtime import BPUACTRuntime as _BPUACTRuntime
+
+    class HB_HBMRuntime:
+        def __init__(self, model_paths):
+            self._rt = _BPUACTRuntime(model_paths)
+        def run(self, inputs, model_name=""):
+            output = self._rt.run(inputs, model_name=model_name)
+            return {model_name: output}
+```
+
+### 编译
+
+```bash
+cd bpu_runtime
+uv pip install pybind11    # 或: pip install pybind11
+mkdir build && cd build
+cmake -DPython3_EXECUTABLE=$(which python) \
+      -Dpybind11_DIR=$(python -c "import pybind11; print(pybind11.get_cmake_dir())") \
+      ..
+make -j$(nproc)
+```
+
+编译产物 `.so`（如 `bpu_act_runtime.cpython-312-aarch64-linux-gnu.so`）会生成在 `bpu_runtime/build/` 下，`bpu_control_robot.py` 会自动发现并加载。
+
+### 文件结构
+
+```
+bpu_runtime/
+├── CMakeLists.txt              # CMake 构建配置
+├── inc/
+│   └── bpu_pybind.hpp          # BPU 推理封装（BPUSubModel + BPUACTRuntime）
+├── src/
+│   └── bpu_act_runtime.cc      # pybind11 模块入口
+└── build/                      # 编译产物（由 cmake/make 生成）
+    └── bpu_act_runtime.cpython-312-aarch64-linux-gnu.so
+```
+
+## 5. 数据集格式说明 (v3.0 vs v2.1)
 
 本分支基于 LeRobot v0.5.2，数据集格式为 `**codebase_version: v3.0`**；`stable` 分支兼容的是 **v2.1** 格式。两者的主要区别：
 
 
-| 维度                 | v2.1 (stable 分支)                                  | v3.0 (本分支 s600)                                           |
+| 维度                 | v2.1 (stable 分支)                                  | v3.0 (本分支 s100)                                           |
 | ------------------ | ------------------------------------------------- | --------------------------------------------------------- |
 | **组织方式**           | 一 episode 一文件                                     | 多 episode 合并进大文件                                          |
 | **数据文件**           | `data/chunk-000/episode_000000.parquet`           | `data/chunk-000/file-000.parquet`                         |
@@ -376,6 +467,7 @@ python -m lerobot.scripts.convert_dataset_v21_to_v30 --repo-id=<your-repo-id> --
 
 - **模型兼容性**: 板端运行必须使用经过 OE 工具链量化并编译的 `.hbm` / `.bin` 模型，不能直接运行 ONNX 或 PyTorch 模型。
 - **机器人配置**: `bpu_control_robot.py` 当前硬编码为 `SO100Follower`。如果部署 SO-101，需要先改代码中的机器人类型。
-- **S600 校准一致性**: 对于 LeRobot v0.5.2 的 ACT 模型，图像 calibration 必须与运行时预处理一致，即 `uint8 -> /255.0 -> (image - mean) / std`。如果直接用 `0..255` 图像做 ImageNet normalize，会导致 Vision/Transformer 量化范围错误，BPU 输出动作可能严重偏离 PyTorch/ONNX。
+- **S100 校准一致性**: 对于 LeRobot v0.5.2 的 ACT 模型，图像 calibration 必须与运行时预处理一致，即 `uint8 -> /255.0 -> (image - mean) / std`。如果直接用 `0..255` 图像做 ImageNet normalize，会导致 Vision/Transformer 量化范围错误，BPU 输出动作可能严重偏离 PyTorch/ONNX。
 - **ACT chunk**: ACT 一次输出 100 步 action chunk，板端不要为了规避问题传 `--n-action-steps 1`。
+- **BPU march**: 本分支面向 S100（`nash-e`）。如需部署到 S600，请使用 `nash-p` 和对应的工具链镜像。
 

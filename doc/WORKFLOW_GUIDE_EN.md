@@ -6,12 +6,12 @@ English| [简体中文](./WORKFLOW_GUIDE_CN.md)
 > But over the past year, things have changed quite a bit:
 >
 > - **LeRobot framework has been significantly upgraded**: It has evolved from the initial v0.1/v0.2 all the way to v0.5.2. The API has been almost completely rewritten — the dataset format has progressed from v2.1 (one episode per file) to v3.0 (multiple episodes consolidated into packages), and the training/collection/calibration CLI interfaces have been replaced with a new set including `lerobot-record`, `lerobot-train`, `lerobot-calibrate`, etc.
-> - **D-Robotics launched the RDK S600**: With stronger computing power, paired with the OE 3.7.0 toolchain and `nash-p` architecture, it has become the new primary platform for edge deployment.
+> - **D-Robotics RDK S100 edge deployment has matured**: S100, paired with the OE 3.7.0 toolchain and `nash-e` architecture, is a stable platform for edge deployment.
 > - **The old tutorials gradually fell behind**: Community members have reported that following the old documentation leads to issues like incompatible dataset formats, commands that can't be found, and misaligned calibration quantization ranges.
 >
-> So we re-examined the entire pipeline, verified the full workflow from scratch based on **LeRobot v0.5.2 + RDK S600 + SO-101 robot arm**, updated the export scripts and toolchain configurations. This document is the complete, updated deployment guide — whether you're new to LeRobot or migrating from the old tutorials, you can start here.
+> So we re-examined the entire pipeline, verified the full workflow from scratch based on **LeRobot v0.5.2 + RDK S100 + SO-101/SO100 robot arm**, updated the export scripts and toolchain configurations. This document is the complete, updated deployment guide — whether you're new to LeRobot or migrating from the old tutorials, you can start here.
 
-This document, based on [Hugging Face LeRobot](https://github.com/huggingface/lerobot) and this toolchain, provides detailed steps to implement an ACT policy on the **SO-101 Robot Arm** from scratch and deploy it to **RDK S600**. For SO-101 assembly, motor setup, and calibration, also refer to the official [SO-101 documentation](https://huggingface.co/docs/lerobot/so101).
+This document, based on [Hugging Face LeRobot](https://github.com/huggingface/lerobot) and this toolchain, provides detailed steps to implement an ACT policy on the **SO-101/SO100 Robot Arm** from scratch and deploy it to **RDK S100**. For SO-101 assembly, motor setup, and calibration, also refer to the official [SO-101 documentation](https://huggingface.co/docs/lerobot/so101).
 
 **Pick and Place Demo:**
 
@@ -40,9 +40,9 @@ This document, based on [Hugging Face LeRobot](https://github.com/huggingface/le
   </table>
 </div>
 
-> **🚀 Core Recommendation: RDK S600 Full-Stack Solution**
+> **🚀 Core Recommendation: RDK S100 Full-Stack Solution**
 > 
-> **RDK S600 is not just an inference terminal; it is a full-featured edge computing platform!**
+> **RDK S100 is not just an inference terminal; it is a full-featured edge computing platform!**
 > Apart from model training (which requires a GPU), you can complete all the following tasks directly on the RDK:
 > *   ✅ **Hardware Calibration**
 > *   ✅ **Teleoperation Testing**
@@ -54,8 +54,8 @@ This document, based on [Hugging Face LeRobot](https://github.com/huggingface/le
 > **Version Statement**:
 > *   **LeRobot**: This branch was verified with LeRobot v0.5.2.
 > *   **Key Python packages**: `datasets 4.8.5`, `torch 2.7.1+cu126`, `onnxruntime 1.26.0`, `onnx 1.21.0`, `numpy 2.2.6`.
-> *   **Hardware**: This document targets **RDK S600 + SO-101/SO100 single-arm ACT**.
-> *   **BPU target**: S600 uses `nash-p`; OE 3.7.0 S100/S600 toolchain is recommended.
+> *   **Hardware**: This document targets **RDK S100 + SO-101/SO100 single-arm ACT**.
+> *   **BPU target**: S100 uses `nash-e`; OE 3.7.0 S100/S600 toolchain is recommended.
 
 ---
 
@@ -76,7 +76,7 @@ Ubuntu 20.04/22.04 + NVIDIA GPU is recommended.
 git clone https://github.com/huggingface/lerobot.git
 cd lerobot
 git clone https://github.com/D-Robotics/rdk_LeRobot_tools.git
-cd rdk_LeRobot_tools && git checkout s600 && cd ..
+cd rdk_LeRobot_tools && git checkout s100 && cd ..
 
 # 2. Install dependencies
 conda activate lerobot
@@ -84,27 +84,45 @@ pip install -e ".[feetech]"
 pip install onnx onnxsim termcolor tqdm safetensors
 ```
 
-### 1.2 RDK Board Environment (For Collection & Inference)
+### 1.2 RDK S100 Board Environment (For Collection & Inference)
 
-SSH into RDK S600:
+SSH into RDK S100:
+
+The board uses **Python 3.12** + **LeRobot v0.5.2** + **C++ pybind11 BPU extension**. The latter lives in this repo's `bpu_runtime/` directory and replaces the `hbm-runtime` PyPI package — whose precompiled `.so` is bound to Python 3.10 and cannot be imported under Python 3.12. The C++ extension links the system BPU libraries (`libdnn.so`, `libhbucp.so`) directly, so it can be compiled for any Python version.
 
 ```bash
-# 1. Clone Hugging Face LeRobot and this tools repo
+# 1. Install uv and clone repos
+curl -LsSf https://astral.sh/uv/install.sh | sh
+export PATH="$HOME/.local/bin:$PATH"
+
+cd ~
 git clone https://github.com/huggingface/lerobot.git
 cd lerobot
-git clone https://github.com/D-Robotics/rdk_LeRobot_tools.git
-cd rdk_LeRobot_tools && git checkout s600 && cd ..
-pip install -e ".[feetech]"
+uv venv --python 3.12 .venv
+source .venv/bin/activate
 
-# 2. Install BPU runtime (required for inference, recommended to install)
-pip install hbm-runtime
+git clone https://github.com/D-Robotics/rdk_LeRobot_tools.git
+cd rdk_LeRobot_tools && git checkout s100 && cd ..
+uv pip install -e ".[feetech]"
+uv pip install onnx onnxsim termcolor tqdm safetensors numpy
+
+# 2. Build the C++ BPU inference extension
+cd rdk_LeRobot_tools/bpu_runtime
+uv pip install pybind11
+mkdir build && cd build
+cmake -DPython3_EXECUTABLE=$(which python) \
+      -Dpybind11_DIR=$(python -c "import pybind11; print(pybind11.get_cmake_dir())") \
+      ..
+make -j$(nproc)
 ```
+
+After a successful build, `bpu_runtime/build/` contains `bpu_act_runtime.cpython-312-aarch64-linux-gnu.so`. `bpu_control_robot.py` auto-discovers and loads this extension — no manual `PYTHONPATH` setup needed. See the C++ runtime section in the repo [README.md](../README.md#4-c-bpu-runtime-bpu_runtime) for details.
 
 ---
 
 ## 2. Hardware Configuration & Assembly (SO-101)
 
-**Tip: Operations in this chapter can be performed on the development machine or directly on the RDK S600 via screen or SSH!**
+**Tip: Operations in this chapter can be performed on the development machine or directly on the RDK S100 via screen or SSH!**
 
 ### 2.1 Set Motor IDs
 
@@ -165,9 +183,9 @@ Please refer to the [Official SO-ARM100 Guide](https://github.com/TheRobotStudio
 *   **Handle (Leader)**:
     <video controls width="100%" src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/lerobot/Leader_v2.mp4" type="video/mp4"></video>
 
-### 2.3 Find Ports (Recommended on RDK S600)
+### 2.3 Find Ports (Recommended on RDK S100)
 
-Connect the assembled Leader and Follower arms to the USB ports of RDK S600. LeRobot v0.5.2 recommends:
+Connect the assembled Leader and Follower arms to the USB ports of RDK S100. LeRobot v0.5.2 recommends:
 
 ```bash
 lerobot-find-port
@@ -185,7 +203,7 @@ Pass the port via command-line options in collection or inference scripts. This 
 
 ## 3. Calibration
 
-**Recommended to run directly on RDK S600.**
+**Recommended to run directly on RDK S100.**
 Calibration is crucial for synchronizing arms and making the trained policy transferable. LeRobot v0.5.2 uses `lerobot-calibrate`, following the same flow as the official Hugging Face [SO-101 documentation](https://huggingface.co/docs/lerobot/so101):
 
 1. Move the arm so every joint is near the middle of its range.
@@ -201,7 +219,7 @@ Calibration is crucial for synchronizing arms and making the trained policy tran
 lerobot-calibrate \
   --robot.type=so101_follower \
   --robot.port=/dev/ttyACM0 \
-  --robot.id=s600_follower
+  --robot.id=s100_follower
 ```
 
 ### 3.2 Calibrate Leader
@@ -210,14 +228,14 @@ lerobot-calibrate \
 lerobot-calibrate \
   --teleop.type=so101_leader \
   --teleop.port=/dev/ttyACM1 \
-  --teleop.id=s600_leader
+  --teleop.id=s100_leader
 ```
 
 ---
 
 ## 4. Camera Configuration
 
-**Recommended to run directly on RDK S600.**
+**Recommended to run directly on RDK S100.**
 LeRobot v0.5.2 no longer edits cameras through `configs.py` / `so101.yaml`. Pass camera settings directly via `--robot.cameras` in `lerobot-record` or via `--camera-index` / `--camera-name` in `bpu_control_robot.py`.
 
 ### 4.1 Find Camera Indices
@@ -251,7 +269,7 @@ For board-side BPU inference, the matching options are:
 
 ## 5. Data Collection (Data Collection)
 
-**Recommended to run directly on RDK S600.**
+**Recommended to run directly on RDK S100.**
 Collecting high-quality demonstration data is key to training success. It is recommended to collect **50+** successful trajectories.
 
 ### 5.1 Run Collection Script
@@ -261,10 +279,10 @@ lerobot-record \
   --robot.type=so101_follower \
   --robot.port=/dev/ttyACM0 \
   --robot.cameras="{front: {type: opencv, index_or_path: 0, width: 640, height: 480, fps: 30}}" \
-  --robot.id=s600_follower \
+  --robot.id=s100_follower \
   --teleop.type=so101_leader \
   --teleop.port=/dev/ttyACM1 \
-  --teleop.id=s600_leader \
+  --teleop.id=s100_leader \
   --dataset.repo_id=my_id/so101_pick_place \
   --dataset.root=/path/to/datasets/so101_pick_place \
   --dataset.num_episodes=50 \
@@ -287,7 +305,7 @@ If `--dataset.root` is omitted, data is stored under `~/.cache/huggingface/lerob
 | `--robot.port` | Follower serial port | Get it with `lerobot-find-port` |
 | `--teleop.type` | Leader arm type | `so101_leader` |
 | `--teleop.port` | Leader serial port | Get it with `lerobot-find-port` |
-| `--robot.cameras` | Camera configuration | S600 USB cameras usually use `opencv` + `index_or_path` |
+| `--robot.cameras` | Camera configuration | S100 USB cameras usually use `opencv` + `index_or_path` |
 | `--dataset.repo_id` | Dataset ID | Format `user/dataset_name` |
 | `--dataset.root` | Local save path | Recommended to set explicitly for later training |
 | `--dataset.num_episodes` | Total episodes | `50+` recommended |
@@ -364,7 +382,7 @@ lerobot-train \
 
 ### 7.1 Configure Export Parameters
 
-For S600 / SO100 ACT, use `rdk_LeRobot_tools/bpu_export_config_s600_calfix.yaml` as a reference:
+For S100 / SO100 ACT, use `rdk_LeRobot_tools/bpu_export_config.yaml` as a reference:
 
 ```yaml
 dataset:
@@ -374,21 +392,21 @@ policy:
   type: "act"
   device: "cpu"
 act_path: "/path/to/outputs/train/act_so100/checkpoints/008000/pretrained_model"
-export_path: "/path/to/bpu_export_act_so100_s600_calfix"
+export_path: "/path/to/bpu_export_act_so100_s100_calfix"
 cal_num: 100
 onnx_sim: true
-type: "nash-p"       # RDK S600
+type: "nash-e"       # RDK S100
 combine_jobs: 6
 ```
 
-This config generates calibration data aligned with S600 runtime preprocessing: image tensors are converted from `0..255` to `0..1` before `(image - mean) / std`.
+This config generates calibration data aligned with S100 runtime preprocessing: image tensors are converted from `0..255` to `0..1` before `(image - mean) / std`.
 
 ### 7.2 Export ONNX and Compile Configuration
 
 ```bash
 # Run on the Development Machine
 cd rdk_LeRobot_tools
-python export_bpu_actpolicy.py --config bpu_export_config_s600_calfix.yaml
+python export_bpu_actpolicy.py --config bpu_export_config.yaml
 ```
 
 When you run this script, it executes the following 6 steps in sequence:
@@ -421,7 +439,7 @@ The output is `Actions [1, 100, 6]` (ACT's 100-step action chunk). A copy of `ne
 **⑤ Generate OE compile configuration and build scripts**
 
 For each submodel, the script generates:
-*   `config_BPU_ACTPolicy_VisionEncoder.yaml` / `config_BPU_ACTPolicy_TransformerLayers.yaml`: Compile configs consumed by OE `hb_compile`, containing ONNX path, calibration data directory, `march: nash-p`, `norm_type: no_preprocess`, etc.
+*   `config_BPU_ACTPolicy_VisionEncoder.yaml` / `config_BPU_ACTPolicy_TransformerLayers.yaml`: Compile configs consumed by OE `hb_compile`, containing ONNX path, calibration data directory, `march: nash-e`, `norm_type: no_preprocess`, etc.
 *   `build_BPU_ACTPolicy_VisionEncoder.sh` / `build_BPU_ACTPolicy_TransformerLayers.sh`: Per-submodel build scripts.
 *   `build_all.sh`: A one-click entry script that compiles both submodels.
 
@@ -466,7 +484,7 @@ export_path/
         sudo docker run --rm hello-world
         ```
 
-2.  **Get and Load Offline Image** (for S600, use the OE 3.7.0 S100/S600 CPU image)
+2.  **Get and Load Offline Image** (for S100, use the OE 3.7.0 S100/S600 CPU image)
     *   Toolchain release summary (continuously updated): [https://forum.d-robotics.cc/t/topic/35229](https://forum.d-robotics.cc/t/topic/35229)
     *   Download the offline image package:
         ```bash
@@ -489,12 +507,12 @@ export_path/
          <docker-image-name> /bin/bash
         ```
     *   **Common Replacements**:
-        - Recommended S600 image: `registry.d-robotics.cc/deliver/ai_toolchain_ubuntu_22_s100_s600_cpu:v3.7.0`
+        - Recommended S100 image: `registry.d-robotics.cc/deliver/ai_toolchain_ubuntu_22_s100_s600_cpu:v3.7.0`
 
 4.  **Compile Model Inside Container**
     *   Enter the mounted directory and execute the build script:
         ```bash
-        cd /workspace/bpu_export_act_so100_s600_calfix
+        cd /workspace/bpu_export_act_so100_s100_calfix
         bash build_all.sh
         ```
     *   Compilation output is usually located under `bpu_output/` and each submodel directory inside `export_path` (confirm via script output).
@@ -510,7 +528,7 @@ export_path/
 ```bash
 # Run a one-shot compile command on the host
 docker run --rm \
-  -v /path/to/bpu_export_act_so100_s600_calfix:/workspace \
+  -v /path/to/bpu_export_act_so100_s100_calfix:/workspace \
   -w /workspace \
   registry.d-robotics.cc/deliver/ai_toolchain_ubuntu_22_s100_s600_cpu:v3.7.0 \
   bash build_all.sh
@@ -536,12 +554,13 @@ After completion, copy the generated `bpu_output` folder to the RDK board for de
 
 ---
 
-## 8. Board Deployment & Inference (RDK S600)
+## 8. Board Deployment & Inference (RDK S100)
 
 ### Prerequisites
-1.  Installed [huggingface/lerobot](https://github.com/huggingface/lerobot) and `hbm-runtime`.
-2.  Transferred the **`bpu_output`** folder (containing quantized `.hbm` models and calibration parameters) to the board.
-3.  **Hardware Config**: Ensure robot port, camera index, and camera name match training/export settings. Calibration files are saved by `lerobot-calibrate` under `~/.cache/huggingface/lerobot/calibration/`.
+1.  Installed [huggingface/lerobot](https://github.com/huggingface/lerobot) v0.5.2 in a Python 3.12 virtualenv.
+2.  Compiled the C++ BPU inference extension (`bpu_runtime/build/bpu_act_runtime.*.so`), which replaces `hbm-runtime`. See Section 1.2.
+3.  Transferred the **`bpu_output`** folder (containing quantized `.hbm` models and calibration parameters) to the board.
+4.  **Hardware Config**: Ensure robot port, camera index, and camera name match training/export settings. Calibration files are saved by `lerobot-calibrate` under `~/.cache/huggingface/lerobot/calibration/`.
 
 ### Run BPU Accelerated Inference
 
@@ -566,19 +585,22 @@ This is the final step to deploy the trained model to the RDK.
 
     ACT emits a 100-step action chunk in one inference. The script auto-detects `n_action_steps` from `new_actions.npy`. Do not pass `--n-action-steps 1` for debugging, because that changes ACT runtime semantics.
 
+    > **BPU runtime note**: `bpu_control_robot.py` first tries `import hbm_runtime`. If the system's `hbm_runtime.so` cannot be imported due to a Python version mismatch (LeRobot v0.5.2 requires Python ≥ 3.12, while the precompiled `hbm_runtime.so` is bound to Python 3.10), the script automatically falls back to the C++ pybind11 extension `bpu_act_runtime` under this repo's `bpu_runtime/build/`. The `BPUACTRuntime` class exposed by this extension performs model loading, normalization parameter reading, tensor inference, and action denormalization internally in C++ — it is a direct drop-in replacement for `hbm_runtime.HB_HBMRuntime` and fully transparent to callers.
+
 ### Troubleshooting
 
 *   **Robot Not Moving**: Check `ls /dev/ttyACM*`; confirm `--robot-port` is correct.
 *   **Camera Error**: Confirm `--camera-index` and `--camera-name` match `bpu_output/*_mean.npy`.
+*   **`ImportError: hbm_runtime`**: Expected. Make sure `bpu_runtime/build/bpu_act_runtime.*.so` is compiled; the script auto-falls-back.
 
 ### BPU Inference Performance Benchmark
 
-Pure BPU performance benchmark on RDK S600 for each ACT module (20 warmup + 200 official samples):
+Pure BPU performance benchmark on RDK S100 for each ACT module (20 warmup + 200 official samples):
 
 | Module | Avg. Inference Time | Frame Rate |
 | :--- | :--- | :--- |
-| VisionEncoder | 3.92 ms | 255.0 inf/s |
-| TransformerLayers | 2.29 ms | 436.4 inf/s |
-| **Complete ACT** | **6.20 ms** | **161.2 inf/s** |
+| VisionEncoder | 4.14 ms | 241.7 inf/s |
+| TransformerLayers | 3.30 ms | 302.8 inf/s |
+| **Complete ACT** | **7.54 ms** | **132.6 inf/s** |
 
-ACT outputs a 100-step action chunk in one inference. At 30 fps control frequency, only one BPU inference (6.20 ms) is needed every 3.33 seconds, leaving the BPU idle for the rest of the time.
+ACT outputs a 100-step action chunk in one inference. At 30 fps control frequency, only one BPU inference (7.54 ms) is needed every 3.33 seconds, leaving the BPU idle for the rest of the time.

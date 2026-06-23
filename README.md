@@ -2,9 +2,9 @@ English| [简体中文](./README_CN.md)
 
 # RDK LeRobot Tools
 
-**This `s600` branch is intended for exporting LeRobot v0.5.2 ACT policies and deploying them on RDK S600 BPU.**
+**This `s100` branch is intended for deploying LeRobot v0.5.2 ACT policies on RDK S100 BPU.**
 
-**Note: For S600, use `nash-p` and the OE 3.7.0 S100/S600 toolchain.**
+**Note: For S100, use `nash-e` and the OE 3.7.0 S100/S600 toolchain.**
 
 **Pick and Place Demo:**
 
@@ -18,16 +18,16 @@ English| [简体中文](./README_CN.md)
   <img src="./doc/assets/demo_episodes_grid.gif" width="640" alt="Training data visualization - 6 episodes side by side" />
 </div>
 
-This repository provides a set of tools to export ACT policy models trained with [Hugging Face LeRobot](https://github.com/huggingface/lerobot) and deploy them to D-Robotics RDK S600, utilizing the BPU for efficient inference.
+This repository provides a set of tools to export ACT policy models trained with [Hugging Face LeRobot](https://github.com/huggingface/lerobot) and deploy them to D-Robotics RDK S100, utilizing the BPU for efficient inference.
 
 For the full workflow documentation, see: 👉 *[Full Workflow Guide](./doc/WORKFLOW_GUIDE_EN.md)*
 
 ## Directory Structure
 
 - `export_bpu_actpolicy.py`: **Model Export Script** (runs on the development machine/training server). Used to convert PyTorch weights to ONNX and generate configuration files and scripts required for BPU compilation.
-- `bpu_export_config_s600_calfix.yaml`: **Recommended S600 config** for LeRobot v0.5.2 / SO100 ACT / `nash-p`.
-- `bpu_export_config.yaml`: Generic template for other platforms (defaults to `nash-e`; do not use on S600).
+- `bpu_export_config.yaml`: **Generic config template** (defaults to `nash-e` for S100). Copy and edit for your dataset/checkpoint.
 - `bpu_control_robot.py`: **On-Board Deployment Script** (runs on the RDK board). Loads the compiled BPU model and controls the robot.
+- `bpu_runtime/`: **C++ BPU inference extension** (pybind11). Replaces the `hbm-runtime` Python package, enabling deployment under Python 3.12 + LeRobot v0.5.2 without the Python 3.10 ABI constraint of the system `hbm_runtime.so`.
 
 ## 1. Environment Preparation
 
@@ -55,31 +55,72 @@ conda activate lerobot
 git clone https://github.com/huggingface/lerobot.git
 cd lerobot
 git clone https://github.com/D-Robotics/rdk_LeRobot_tools.git
-cd rdk_LeRobot_tools && git checkout s600 && cd ..
+cd rdk_LeRobot_tools && git checkout s100 && cd ..
 pip install -e ".[feetech]"
 pip install onnx onnxsim termcolor tqdm safetensors
 ```
 
 *Note: Model compilation (ONNX -> HBM) needs to be performed in the Docker toolchain environment (OpenExplorer) provided by D-Robotics.*
 
-### 1.2 RDK Board (For Model Deployment)
+### 1.2 RDK S100 Board (For Model Deployment)
 
-Use the same Hugging Face `huggingface/lerobot` repository on the board:
+The on-board deployment uses **Python 3.12** + **LeRobot v0.5.2** + a **C++ pybind11 BPU extension** (bundled in this repo under `bpu_runtime/`).
 
-1. **Install LeRobot and this tools repo**:
-  ```bash
-    git clone https://github.com/huggingface/lerobot.git
-    cd lerobot
-    git clone https://github.com/D-Robotics/rdk_LeRobot_tools.git
-    cd rdk_LeRobot_tools && git checkout s600 && cd ..
-    pip install -e ".[feetech]"
-    # This branch was verified with datasets 4.8.5.
-    # Do not use the D-Robotics/lerobot fork.
-  ```
-2. **Install BPU Inference Library**:
-  ```bash
-    pip install hbm-runtime
-  ```
+This replaces the `hbm-runtime` PyPI package, whose pre-built `.so` is compiled for Python 3.10 and cannot be imported under Python 3.12. The C++ extension links directly against the system BPU libraries (`libdnn.so`, `libhbucp.so`) and is compiled for whatever Python version your venv uses.
+
+#### Step 1: Install uv and create Python 3.12 venv
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+export PATH="$HOME/.local/bin:$PATH"
+
+cd ~
+git clone https://github.com/huggingface/lerobot.git
+cd lerobot
+uv venv --python 3.12 .venv
+source .venv/bin/activate
+```
+
+#### Step 2: Install LeRobot and tools
+
+```bash
+git clone https://github.com/D-Robotics/rdk_LeRobot_tools.git
+cd rdk_LeRobot_tools && git checkout s100 && cd ..
+uv pip install -e ".[feetech]"
+uv pip install onnx onnxsim termcolor tqdm safetensors numpy
+```
+
+#### Step 3: Build the C++ BPU runtime extension
+
+The `bpu_runtime/` directory contains a pybind11 module that wraps the BPU C/C++ inference API (`hbDNN` / `hbUCP`). It exposes a `BPUACTRuntime` class that is a drop-in replacement for `hbm_runtime.HB_HBMRuntime`.
+
+```bash
+cd rdk_LeRobot_tools/bpu_runtime
+uv pip install pybind11
+mkdir build && cd build
+cmake -DPython3_EXECUTABLE=$(which python) \
+      -Dpybind11_DIR=$(python -c "import pybind11; print(pybind11.get_cmake_dir())") \
+      ..
+make -j$(nproc)
+```
+
+After a successful build, you will have `bpu_act_runtime.cpython-312-aarch64-linux-gnu.so` in `bpu_runtime/build/`.
+
+The `bpu_control_robot.py` script will automatically find and import this `.so` — no manual `PYTHONPATH` needed. It tries `hbm_runtime` first (the original PyPI package), and falls back to the C++ extension if `hbm_runtime` is unavailable.
+
+#### Step 4: Verify the build
+
+```bash
+cd rdk_LeRobot_tools
+python -c "
+from bpu_act_runtime import BPUACTRuntime
+import numpy as np
+rt = BPUACTRuntime(['bpu_output/BPU_ACTPolicy_VisionEncoder.hbm',
+                     'bpu_output/BPU_ACTPolicy_TransformerLayers.hbm'])
+out = rt.run({'images': np.zeros((1,3,480,640),dtype=np.float32)}, model_name='VisionEncoder')
+print('Vision output:', {k: v.shape for k,v in out.items()})
+"
+```
 
 ## 2. Model Export and Compilation (Executed on Development Machine)
 
@@ -90,10 +131,10 @@ This process has two stages: `export_bpu_actpolicy.py` exports ONNX and compile 
 There are **two different config files** in this workflow:
 
 
-| Config File                          | Used By                   | Purpose                                                     |
-| ------------------------------------ | ------------------------- | ----------------------------------------------------------- |
-| `bpu_export_config_s600_calfix.yaml` | `export_bpu_actpolicy.py` | checkpoint, dataset, export path, `nash-p`, `cal_num`, etc. |
-| `config_BPU_ACTPolicy_*.yaml`        | OE `hb_compile`           | ONNX path, calibration data, quantization/compile settings  |
+| Config File                  | Used By                   | Purpose                                                     |
+| ---------------------------- | ------------------------- | ----------------------------------------------------------- |
+| `bpu_export_config.yaml`     | `export_bpu_actpolicy.py` | checkpoint, dataset, export path, `nash-e`, `cal_num`, etc. |
+| `config_BPU_ACTPolicy_*.yaml` | OE `hb_compile`           | ONNX path, calibration data, quantization/compile settings  |
 
 
 In short: **you edit the export-stage YAML; the toolchain consumes the auto-generated `config_*.yaml` files.**
@@ -101,7 +142,7 @@ In short: **you edit the export-stage YAML; the toolchain consumes the auto-gene
 The OE toolchain only accepts ONNX. It does not read PyTorch checkpoints directly. The standard flow is:
 
 ```text
-bpu_export_config_s600_calfix.yaml
+bpu_export_config.yaml
         ↓
 export_bpu_actpolicy.py
         ↓
@@ -140,7 +181,7 @@ For BPU deployment, the export script splits ACT into two submodels:
 
 #### What Does `export_bpu_actpolicy.py` Do?
 
-When you run `python export_bpu_actpolicy.py --config bpu_export_config_s600_calfix.yaml`, the script executes the following 6 steps:
+When you run `python export_bpu_actpolicy.py --config bpu_export_config.yaml`, the script executes the following 6 steps:
 
 **① Load model and dataset, auto-detect cameras**
 
@@ -166,7 +207,7 @@ Wraps encoder + decoder + action_head as `BPU_ACTPolicy_TransformerLayers`. Inpu
 
 **⑤ Generate OE compile configuration and build scripts**
 
-Generates `config_BPU_ACTPolicy_*.yaml`, `build_*.sh`, and the one-click `build_all.sh` for both submodels. Configs include `march: nash-p`, `norm_type: no_preprocess`, etc.
+Generates `config_BPU_ACTPolicy_*.yaml`, `build_*.sh`, and the one-click `build_all.sh` for both submodels. Configs include `march: nash-e`, `norm_type: no_preprocess`, etc.
 
 **⑥ Generate quantization calibration data**
 
@@ -183,7 +224,7 @@ Image calibration tensors are converted from `0..255` to `0..1` when needed, the
 ```yaml
 model_parameters:
   onnx_model: BPU_ACTPolicy_VisionEncoder.onnx
-  march: nash-p
+  march: nash-e
 calibration_parameters:
   cal_data_dir: calibration_data_BPU_ACTPolicy_VisionEncoder
   cal_data_type: float32
@@ -236,16 +277,16 @@ Because normalization happens outside the BPU, both `config_*.yaml` files use `n
 ### Step 1: Export ONNX and Configuration
 
 1. **Modify Configuration File**:
-  For S600 / SO100 ACT, edit `bpu_export_config_s600_calfix.yaml` directly:
+  For S100 / SO100 ACT, edit `bpu_export_config.yaml`:
   - `dataset.root`: Dataset root used during training.
   - `act_path`: Trained ACT checkpoint path.
   - `export_path`: Export output directory.
-  - `type`: Must be `nash-p` for S600.
+  - `type`: Must be `nash-e` for S100.
   - `cal_num`: Recommended `100`.
 2. **Run Export Script**:
   ```bash
     cd rdk_LeRobot_tools
-    python export_bpu_actpolicy.py --config bpu_export_config_s600_calfix.yaml
+    python export_bpu_actpolicy.py --config bpu_export_config.yaml
   ```
     After successful execution, ONNX files, calibration data, and `build_all.sh` are generated under `export_path`.
     **Important Note:** The export script reads image, state, and action normalization statistics from the LeRobot v0.5.2 checkpoint processor safetensors. Image calibration tensors are first ensured to be `0..1` float inputs, then normalized with `(image - mean) / std`, matching the board runtime path `uint8 -> /255.0 -> normalize`.
@@ -255,11 +296,11 @@ Because normalization happens outside the BPU, both `config_*.yaml` files use `n
 Enter the toolchain Docker environment and run the compilation script generated in the previous step:
 
 ```bash
-cd /path/to/bpu_export_act_so100_s600_calfix
+cd /path/to/bpu_export_act_so100_s100_calfix
 bash build_all.sh
 ```
 
-For S600, use the OE 3.7.0 S100/S600 Docker toolchain. Toolchain release summary (continuously updated): [https://forum.d-robotics.cc/t/topic/35229](https://forum.d-robotics.cc/t/topic/35229)
+For S100, use the OE 3.7.0 S100/S600 Docker toolchain. Toolchain release summary (continuously updated): [https://forum.d-robotics.cc/t/topic/35229](https://forum.d-robotics.cc/t/topic/35229)
 
 ```bash
 # Download offline image package
@@ -272,7 +313,7 @@ Run compilation:
 
 ```bash
 docker run --rm \
-  -v /path/to/bpu_export_act_so100_s600_calfix:/workspace \
+  -v /path/to/bpu_export_act_so100_s100_calfix:/workspace \
   -w /workspace \
   registry.d-robotics.cc/deliver/ai_toolchain_ubuntu_22_s100_s600_cpu:v3.7.0 \
   bash build_all.sh
@@ -300,15 +341,16 @@ bpu_output/
     `-- ...
 ```
 
-## 3. On-Board Inference (Executed on RDK)
+## 3. On-Board Inference (Executed on RDK S100)
 
 The core of on-board inference is using the `**bpu_control_robot.py**` script.
 
 ### Prerequisites
 
-1. Installed [huggingface/lerobot](https://github.com/huggingface/lerobot) and `hbm-runtime`.
-2. Transferred the `**bpu_output**` folder (containing the quantized `.hbm` model and calibration parameters) to the board.
-3. **Hardware Configuration**: Pass robot port, camera index, and camera name via CLI. Calibration files are saved by `lerobot-calibrate`.
+1. Installed [huggingface/lerobot](https://github.com/huggingface/lerobot) v0.5.2 in a Python 3.12 venv.
+2. Built the C++ BPU runtime extension (`bpu_runtime/build/bpu_act_runtime.*.so`).
+3. Transferred the `**bpu_output**` folder (containing the quantized `.hbm` model and calibration parameters) to the board.
+4. **Hardware Configuration**: Pass robot port, camera index, and camera name via CLI. Calibration files are saved by `lerobot-calibrate`.
 
 ### Run Steps
 
@@ -335,24 +377,78 @@ The core of on-board inference is using the `**bpu_control_robot.py**` script.
 
 ### BPU Inference Performance Benchmark
 
-Pure BPU performance benchmark on RDK S600 for each ACT module (20 warmup + 200 official samples):
+Pure BPU performance benchmark on RDK S100 for each ACT module (20 warmup + 200 official samples):
 
 
 | Module            | Avg. Inference Time | Frame Rate      |
 | ----------------- | ------------------- | --------------- |
-| VisionEncoder     | 3.92 ms             | 255.0 inf/s     |
-| TransformerLayers | 2.29 ms             | 436.4 inf/s     |
-| **Complete ACT**  | **6.20 ms**         | **161.2 inf/s** |
+| VisionEncoder     | 4.14 ms             | 241.7 inf/s     |
+| TransformerLayers | 3.30 ms             | 302.8 inf/s     |
+| **Complete ACT**  | **7.54 ms**         | **132.6 inf/s** |
 
 
-ACT outputs a 100-step action chunk in one inference. At 30 fps control frequency, only one BPU inference (6.20 ms) is needed every 3.33 seconds, leaving the BPU idle for the rest of the time.
+ACT outputs a 100-step action chunk in one inference. At 30 fps control frequency, only one BPU inference (7.54 ms) is needed every 3.33 seconds, leaving the BPU idle for the rest of the time.
 
-## 4. Dataset Format Note (v3.0 vs v2.1)
+## 4. C++ BPU Runtime (`bpu_runtime/`)
+
+### Why a C++ Extension?
+
+The `hbm-runtime` PyPI package (`hbm_runtime.HB_HBMRuntime`) is compiled as a pybind11/C extension linked against Python 3.10. LeRobot v0.5.2 requires Python >= 3.12 (`requires-python = ">=3.12"` in `pyproject.toml`). This makes it impossible to `import hbm_runtime` under Python 3.12.
+
+The `bpu_runtime/` directory contains a self-contained C++ pybind11 extension that wraps the same BPU C API (`hbDNN` / `hbUCP`) and exposes a `BPUACTRuntime` class with an identical interface. It links against the system BPU libraries (`libdnn.so`, `libhbucp.so`) which are Python-version-independent, so it compiles cleanly for any Python version.
+
+### How It Works
+
+`bpu_control_robot.py` tries `hbm_runtime` first. If unavailable, it imports the C++ extension and wraps it in a thin adapter class that matches the `HB_HBMRuntime` interface:
+
+```python
+try:
+    from hbm_runtime import HB_HBMRuntime
+except ImportError:
+    from bpu_act_runtime import BPUACTRuntime as _BPUACTRuntime
+
+    class HB_HBMRuntime:
+        def __init__(self, model_paths):
+            self._rt = _BPUACTRuntime(model_paths)
+        def run(self, inputs, model_name=""):
+            output = self._rt.run(inputs, model_name=model_name)
+            return {model_name: output}
+```
+
+
+### Build
+
+```bash
+cd bpu_runtime
+uv pip install pybind11    # or: pip install pybind11
+mkdir build && cd build
+cmake -DPython3_EXECUTABLE=$(which python) \
+      -Dpybind11_DIR=$(python -c "import pybind11; print(pybind11.get_cmake_dir())") \
+      ..
+make -j$(nproc)
+```
+
+The output `.so` (e.g., `bpu_act_runtime.cpython-312-aarch64-linux-gnu.so`) is placed in `bpu_runtime/build/` and is automatically discovered by `bpu_control_robot.py`.
+
+### Files
+
+```
+bpu_runtime/
+├── CMakeLists.txt              # CMake build config
+├── inc/
+│   └── bpu_pybind.hpp          # BPU inference wrapper (BPUSubModel + BPUACTRuntime)
+├── src/
+│   └── bpu_act_runtime.cc      # pybind11 module entry point
+└── build/                      # compiled .so (generated by cmake/make)
+    └── bpu_act_runtime.cpython-312-aarch64-linux-gnu.so
+```
+
+## 5. Dataset Format Note (v3.0 vs v2.1)
 
 This branch uses LeRobot v0.5.2 with `**codebase_version: v3.0`** dataset format. The `stable` branch is compatible with **v2.1** format. Key differences:
 
 
-| Aspect                | v2.1 (stable branch)                              | v3.0 (this s600 branch)                                   |
+| Aspect                | v2.1 (stable branch)                              | v3.0 (this s100 branch)                                   |
 | --------------------- | ------------------------------------------------- | --------------------------------------------------------- |
 | **Organization**      | One file per episode                              | Multiple episodes packed into larger files                |
 | **Data files**        | `data/chunk-000/episode_000000.parquet`           | `data/chunk-000/file-000.parquet`                         |
@@ -374,6 +470,4 @@ python -m lerobot.scripts.convert_dataset_v21_to_v30 --repo-id=<your-repo-id> --
 
 - **Model Compatibility**: On-board execution must use `.hbm` / `.bin` models quantized and compiled by the OE toolchain, and cannot directly run ONNX or PyTorch models.
 - **Robot Configuration**: `bpu_control_robot.py` is currently hardcoded to `SO100Follower`. For SO-101 deployment, update the robot type in code first.
-- **S600 calibration consistency**: For LeRobot v0.5.2 ACT models, image calibration must match runtime preprocessing: `uint8 -> /255.0 -> (image - mean) / std`. If `0..255` images are normalized directly with ImageNet mean/std, the Vision/Transformer quantization ranges will be wrong and BPU actions may diverge significantly from PyTorch/ONNX.
-- **ACT chunking**: ACT outputs a 100-step action chunk in one inference. Do not pass `--n-action-steps 1` to work around deployment issues.
-
+- **BPU march**: This branch targets S100 (`nash-e`). For S600 deployment, use `nash-p` and the corresponding toolchain image.
