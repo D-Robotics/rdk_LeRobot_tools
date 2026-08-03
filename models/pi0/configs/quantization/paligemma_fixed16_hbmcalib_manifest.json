@@ -1,0 +1,3569 @@
+{
+  "model_dir": "/host/gemma/input/pi0_full_v5_2cam_100ep_015000",
+  "calibration_dir": "/host/gemma/calibration_data/pi0_full_v5_2cam_100ep_015000_real50",
+  "vision_embeddings_dir": "/host/gemma/calibration_data/pi0_full_v5_2cam_100ep_015000_positionfp16_siglip_hbm_real50_20260731_1630",
+  "vision_embeddings_source": "precomputed_s600_siglip_hbm",
+  "sample_count": 50,
+  "vision_tokens_num": 256,
+  "vision_input_tokens": 768,
+  "compact_prefix": false,
+  "num_hidden_layers": 18,
+  "static_linear_count": 0,
+  "export_precision": {
+    "attention_linear_mode": "dynamic",
+    "attention_linear_last_layer_count": 18,
+    "attention_linear_layer_indices": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17
+    ],
+    "mlp_linear_mode": "dynamic",
+    "mlp_down_linear_mode": "dynamic",
+    "mlp_down_linear_layer_count": 18,
+    "mlp_down_linear_layer_indices": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17
+    ],
+    "attention_matmul_mode": "fixed16",
+    "fp16_last_layers": 0,
+    "fp16_layer_indices": [],
+    "layer_count": 18,
+    "attention_matmul_qk_bits": [
+      16,
+      16
+    ],
+    "attention_matmul_sv_bits": [
+      16,
+      16
+    ],
+    "attention_matmul_accumulation_dtype": "float32",
+    "attention_matmul_output_dtype": "float16"
+  },
+  "device": "cuda:0",
+  "calibration_seconds": 2.1361283939913847,
+  "fixed_prompt": {
+    "text": "Place the RDK camera box on top of the black MCU box.",
+    "valid_token_length": 16,
+    "token_ids": [
+      2,
+      14476,
+      573,
+      625,
+      22471,
+      7909,
+      3741,
+      611,
+      2267,
+      576,
+      573,
+      2656,
+      80559,
+      3741,
+      235265,
+      108,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "tokens_path": "/host/gemma/output/pi0_full_v5_2cam_100ep_015000_paligemma_positionfp16_siglip_hbmcalib_fixed16_real50_sdk102_20260731_1710/paligemma/fixed_prompt_tokens.bin",
+    "tokens_sha256": "b7cfa169e2f14bdb0076eb0f6c927d5e3cb21214e99b210bb468f019be3a314a",
+    "embedding_path": "/host/gemma/output/pi0_full_v5_2cam_100ep_015000_paligemma_positionfp16_siglip_hbmcalib_fixed16_real50_sdk102_20260731_1710/paligemma/fixed_prompt_embedding.bin",
+    "embedding_sha256": "39ac72af2ea87575284a6059cb513287c140593b426c488cb34d135fa552ce87",
+    "embedding": {
+      "shape": [
+        1,
+        48,
+        2048
+      ],
+      "dtype": "torch.float16",
+      "min": -492.25,
+      "max": 301.25,
+      "mean": 0.07675420492887497,
+      "std": 9.345789909362793,
+      "absmax": 492.25
+    },
+    "hbm_input_order": [
+      "prompt_embeddings",
+      "vision_embeddings",
+      "attention_mask"
+    ],
+    "prompt_embedding_input": true,
+    "compact_prefix": false,
+    "position_layout": {
+      "physical_camera_slots": 3,
+      "valid_camera_slots": 2,
+      "vision_tokens_per_camera": 256,
+      "physical_vision_tokens": 768,
+      "valid_vision_tokens": 512,
+      "language_capacity": 48,
+      "physical_prefix_tokens": 816,
+      "paligemma_positions": {
+        "front": [
+          0,
+          511
+        ],
+        "empty_cameras": 511,
+        "language": [
+          512,
+          559
+        ]
+      },
+      "valid_prompt_tokens": 16,
+      "logical_prefix_tokens": 528,
+      "expert_positions": {
+        "state": 528,
+        "actions": [
+          529,
+          578
+        ]
+      }
+    }
+  },
+  "position_layout": {
+    "physical_camera_slots": 3,
+    "valid_camera_slots": 2,
+    "vision_tokens_per_camera": 256,
+    "physical_vision_tokens": 768,
+    "valid_vision_tokens": 512,
+    "language_capacity": 48,
+    "physical_prefix_tokens": 816,
+    "paligemma_positions": {
+      "front": [
+        0,
+        511
+      ],
+      "empty_cameras": 511,
+      "language": [
+        512,
+        559
+      ]
+    },
+    "valid_prompt_tokens": 16,
+    "logical_prefix_tokens": 528,
+    "expert_positions": {
+      "state": 528,
+      "actions": [
+        529,
+        578
+      ]
+    }
+  },
+  "black_probe": {
+    "sample": "0",
+    "mean_abs_diff": 0.0908481553196907,
+    "max_abs_diff": 3.8408203125,
+    "identical": false,
+    "live_embedding": {
+      "shape": [
+        1,
+        768,
+        2048
+      ],
+      "dtype": "torch.float16",
+      "min": -24.546875,
+      "max": 23.671875,
+      "mean": 0.006426319479942322,
+      "std": 2.5168874263763428,
+      "absmax": 24.546875
+    },
+    "black_embedding": {
+      "shape": [
+        1,
+        768,
+        2048
+      ],
+      "dtype": "torch.float16",
+      "min": -24.546875,
+      "max": 23.671875,
+      "mean": 0.006934117525815964,
+      "std": 2.5158450603485107,
+      "absmax": 24.546875
+    }
+  },
+  "sample_differences": [
+    {
+      "sample": "1",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.12257132679224014,
+      "max_abs_diff": 4.2216796875,
+      "identical": false
+    },
+    {
+      "sample": "2",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.14589451253414154,
+      "max_abs_diff": 4.50030517578125,
+      "identical": false
+    },
+    {
+      "sample": "3",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.1504959911108017,
+      "max_abs_diff": 4.5498046875,
+      "identical": false
+    },
+    {
+      "sample": "4",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.1360841989517212,
+      "max_abs_diff": 6.0234375,
+      "identical": false
+    },
+    {
+      "sample": "5",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.08179902285337448,
+      "max_abs_diff": 4.03515625,
+      "identical": false
+    },
+    {
+      "sample": "6",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.11218702793121338,
+      "max_abs_diff": 4.4072265625,
+      "identical": false
+    },
+    {
+      "sample": "7",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.16505995392799377,
+      "max_abs_diff": 4.251953125,
+      "identical": false
+    },
+    {
+      "sample": "8",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.13803619146347046,
+      "max_abs_diff": 5.0931396484375,
+      "identical": false
+    },
+    {
+      "sample": "9",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.1377842128276825,
+      "max_abs_diff": 5.2470703125,
+      "identical": false
+    },
+    {
+      "sample": "10",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.08302095532417297,
+      "max_abs_diff": 3.8564453125,
+      "identical": false
+    },
+    {
+      "sample": "11",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.14353613555431366,
+      "max_abs_diff": 4.572265625,
+      "identical": false
+    },
+    {
+      "sample": "12",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.16397416591644287,
+      "max_abs_diff": 4.68994140625,
+      "identical": false
+    },
+    {
+      "sample": "13",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.14934635162353516,
+      "max_abs_diff": 4.955078125,
+      "identical": false
+    },
+    {
+      "sample": "14",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.1425977200269699,
+      "max_abs_diff": 4.6435546875,
+      "identical": false
+    },
+    {
+      "sample": "15",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.11920225620269775,
+      "max_abs_diff": 4.7548828125,
+      "identical": false
+    },
+    {
+      "sample": "16",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.13539335131645203,
+      "max_abs_diff": 4.635009765625,
+      "identical": false
+    },
+    {
+      "sample": "17",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.14758291840553284,
+      "max_abs_diff": 4.44580078125,
+      "identical": false
+    },
+    {
+      "sample": "18",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.14065606892108917,
+      "max_abs_diff": 4.0440673828125,
+      "identical": false
+    },
+    {
+      "sample": "19",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.14181379973888397,
+      "max_abs_diff": 5.28515625,
+      "identical": false
+    },
+    {
+      "sample": "20",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.10231973975896835,
+      "max_abs_diff": 4.314453125,
+      "identical": false
+    },
+    {
+      "sample": "21",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.12035801261663437,
+      "max_abs_diff": 4.1103515625,
+      "identical": false
+    },
+    {
+      "sample": "22",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.13830409944057465,
+      "max_abs_diff": 4.1868896484375,
+      "identical": false
+    },
+    {
+      "sample": "23",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.1391964554786682,
+      "max_abs_diff": 3.904296875,
+      "identical": false
+    },
+    {
+      "sample": "24",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.13203953206539154,
+      "max_abs_diff": 5.845703125,
+      "identical": false
+    },
+    {
+      "sample": "25",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.10474497079849243,
+      "max_abs_diff": 5.080078125,
+      "identical": false
+    },
+    {
+      "sample": "26",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.13354402780532837,
+      "max_abs_diff": 4.4111328125,
+      "identical": false
+    },
+    {
+      "sample": "27",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.1517254263162613,
+      "max_abs_diff": 4.17578125,
+      "identical": false
+    },
+    {
+      "sample": "28",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.14462348818778992,
+      "max_abs_diff": 3.6474609375,
+      "identical": false
+    },
+    {
+      "sample": "29",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.14269743859767914,
+      "max_abs_diff": 4.6806640625,
+      "identical": false
+    },
+    {
+      "sample": "30",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.10088922828435898,
+      "max_abs_diff": 3.8212890625,
+      "identical": false
+    },
+    {
+      "sample": "31",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.1151481494307518,
+      "max_abs_diff": 4.49658203125,
+      "identical": false
+    },
+    {
+      "sample": "32",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.1514483392238617,
+      "max_abs_diff": 3.875,
+      "identical": false
+    },
+    {
+      "sample": "33",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.14356642961502075,
+      "max_abs_diff": 3.6904296875,
+      "identical": false
+    },
+    {
+      "sample": "34",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.1412150263786316,
+      "max_abs_diff": 4.095703125,
+      "identical": false
+    },
+    {
+      "sample": "35",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.0857771635055542,
+      "max_abs_diff": 5.419921875,
+      "identical": false
+    },
+    {
+      "sample": "36",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.1554296463727951,
+      "max_abs_diff": 4.197265625,
+      "identical": false
+    },
+    {
+      "sample": "37",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.15181395411491394,
+      "max_abs_diff": 4.18115234375,
+      "identical": false
+    },
+    {
+      "sample": "38",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.1491309553384781,
+      "max_abs_diff": 4.34765625,
+      "identical": false
+    },
+    {
+      "sample": "39",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.1264222115278244,
+      "max_abs_diff": 4.9609375,
+      "identical": false
+    },
+    {
+      "sample": "40",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.0911596491932869,
+      "max_abs_diff": 4.1201171875,
+      "identical": false
+    },
+    {
+      "sample": "41",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.13392144441604614,
+      "max_abs_diff": 4.310546875,
+      "identical": false
+    },
+    {
+      "sample": "42",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.14778389036655426,
+      "max_abs_diff": 4.080078125,
+      "identical": false
+    },
+    {
+      "sample": "43",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.1237364262342453,
+      "max_abs_diff": 4.72265625,
+      "identical": false
+    },
+    {
+      "sample": "44",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.14705802500247955,
+      "max_abs_diff": 5.302734375,
+      "identical": false
+    },
+    {
+      "sample": "45",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.11904456466436386,
+      "max_abs_diff": 4.369140625,
+      "identical": false
+    },
+    {
+      "sample": "46",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.1449381411075592,
+      "max_abs_diff": 3.9365234375,
+      "identical": false
+    },
+    {
+      "sample": "47",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.15855056047439575,
+      "max_abs_diff": 4.533935546875,
+      "identical": false
+    },
+    {
+      "sample": "48",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.1546071171760559,
+      "max_abs_diff": 4.3125,
+      "identical": false
+    },
+    {
+      "sample": "49",
+      "reference_sample": "0",
+      "mean_abs_diff": 0.12482134252786636,
+      "max_abs_diff": 5.2841796875,
+      "identical": false
+    }
+  ],
+  "samples": [
+    {
+      "sample": "0",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -24.546875,
+        "max": 23.671875,
+        "mean": 0.006426319479942322,
+        "std": 2.5168874263763428,
+        "absmax": 24.546875
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -22.859375,
+        "max": 68.75,
+        "mean": -0.010751529596745968,
+        "std": 1.7539620399475098,
+        "absmax": 68.75
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 7.45703125,
+        "mean": 0.017320943996310234,
+        "std": 0.8778363466262817,
+        "absmax": 7.45703125
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -22.4375,
+        "max": 24.96875,
+        "mean": -0.1212364211678505,
+        "std": 2.4731533527374268,
+        "absmax": 24.96875
+      }
+    },
+    {
+      "sample": "1",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -23.984375,
+        "max": 23.53125,
+        "mean": 0.00734714325517416,
+        "std": 2.5218398571014404,
+        "absmax": 23.984375
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -21.09375,
+        "max": 64.1875,
+        "mean": -0.05504581332206726,
+        "std": 1.7312133312225342,
+        "absmax": 64.1875
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 7.48046875,
+        "mean": 0.023449411615729332,
+        "std": 0.8795954585075378,
+        "absmax": 7.48046875
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -21.171875,
+        "max": 25.0625,
+        "mean": -0.028476960957050323,
+        "std": 2.4236249923706055,
+        "absmax": 25.0625
+      }
+    },
+    {
+      "sample": "2",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -23.65625,
+        "max": 24.03125,
+        "mean": 0.0070197321474552155,
+        "std": 2.517068862915039,
+        "absmax": 24.03125
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -24.9375,
+        "max": 72.875,
+        "mean": 0.05045825615525246,
+        "std": 1.7489279508590698,
+        "absmax": 72.875
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 7.95703125,
+        "mean": 0.01587066613137722,
+        "std": 0.8765141367912292,
+        "absmax": 7.95703125
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -25.6875,
+        "max": 27.65625,
+        "mean": -0.08429808914661407,
+        "std": 2.800529718399048,
+        "absmax": 27.65625
+      }
+    },
+    {
+      "sample": "3",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -23.71875,
+        "max": 24.1875,
+        "mean": 0.007205694913864136,
+        "std": 2.5389652252197266,
+        "absmax": 24.1875
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -21.78125,
+        "max": 65.9375,
+        "mean": -0.014655832201242447,
+        "std": 1.7454018592834473,
+        "absmax": 65.9375
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 7.45703125,
+        "mean": 0.016135016456246376,
+        "std": 0.8649336695671082,
+        "absmax": 7.45703125
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -18.125,
+        "max": 19.1875,
+        "mean": -0.09781765192747116,
+        "std": 2.432652711868286,
+        "absmax": 19.1875
+      }
+    },
+    {
+      "sample": "4",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -26.109375,
+        "max": 26.296875,
+        "mean": 0.00824690330773592,
+        "std": 2.5734143257141113,
+        "absmax": 26.296875
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -22.171875,
+        "max": 60.78125,
+        "mean": 0.009286913089454174,
+        "std": 1.7280726432800293,
+        "absmax": 60.78125
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 7.5859375,
+        "mean": 0.01969319023191929,
+        "std": 0.8579253554344177,
+        "absmax": 7.5859375
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -23.703125,
+        "max": 23.984375,
+        "mean": -0.21215610206127167,
+        "std": 2.9751901626586914,
+        "absmax": 23.984375
+      }
+    },
+    {
+      "sample": "5",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -24.1875,
+        "max": 23.640625,
+        "mean": 0.006889538839459419,
+        "std": 2.5336012840270996,
+        "absmax": 24.1875
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -21.0,
+        "max": 64.6875,
+        "mean": -0.01151982881128788,
+        "std": 1.7491915225982666,
+        "absmax": 64.6875
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 7.5234375,
+        "mean": 0.019021376967430115,
+        "std": 0.8718128800392151,
+        "absmax": 7.5234375
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -21.453125,
+        "max": 23.828125,
+        "mean": -0.09874170273542404,
+        "std": 2.406034469604492,
+        "absmax": 23.828125
+      }
+    },
+    {
+      "sample": "6",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -23.90625,
+        "max": 23.75,
+        "mean": 0.006972982548177242,
+        "std": 2.5104329586029053,
+        "absmax": 23.90625
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -20.6875,
+        "max": 63.28125,
+        "mean": -0.04852726683020592,
+        "std": 1.7413090467453003,
+        "absmax": 63.28125
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 7.58984375,
+        "mean": 0.019900385290384293,
+        "std": 0.8764666318893433,
+        "absmax": 7.58984375
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -21.734375,
+        "max": 28.703125,
+        "mean": -0.0689704567193985,
+        "std": 2.4325759410858154,
+        "absmax": 28.703125
+      }
+    },
+    {
+      "sample": "7",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -23.890625,
+        "max": 24.828125,
+        "mean": 0.007292510941624641,
+        "std": 2.5033318996429443,
+        "absmax": 24.828125
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -20.28125,
+        "max": 64.125,
+        "mean": 0.046336978673934937,
+        "std": 1.7443938255310059,
+        "absmax": 64.125
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 7.74609375,
+        "mean": 0.013893593102693558,
+        "std": 0.8829512596130371,
+        "absmax": 7.74609375
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -27.0,
+        "max": 20.859375,
+        "mean": -0.09821852296590805,
+        "std": 2.7088422775268555,
+        "absmax": 27.0
+      }
+    },
+    {
+      "sample": "8",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -25.703125,
+        "max": 25.5,
+        "mean": 0.007549119181931019,
+        "std": 2.564545154571533,
+        "absmax": 25.703125
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -22.421875,
+        "max": 61.375,
+        "mean": 0.01580514945089817,
+        "std": 1.7292958498001099,
+        "absmax": 61.375
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 7.45703125,
+        "mean": 0.02189534343779087,
+        "std": 0.8585699200630188,
+        "absmax": 7.45703125
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -22.625,
+        "max": 23.75,
+        "mean": -0.17960231006145477,
+        "std": 2.9005870819091797,
+        "absmax": 23.75
+      }
+    },
+    {
+      "sample": "9",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -25.328125,
+        "max": 26.078125,
+        "mean": 0.007682044059038162,
+        "std": 2.5637879371643066,
+        "absmax": 26.078125
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -22.375,
+        "max": 61.5,
+        "mean": 0.01712886057794094,
+        "std": 1.7345068454742432,
+        "absmax": 61.5
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 8.0703125,
+        "mean": 0.02108675055205822,
+        "std": 0.8630753755569458,
+        "absmax": 8.0703125
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -22.828125,
+        "max": 22.234375,
+        "mean": -0.2285892367362976,
+        "std": 2.9178385734558105,
+        "absmax": 22.828125
+      }
+    },
+    {
+      "sample": "10",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -24.53125,
+        "max": 23.765625,
+        "mean": 0.006852918770164251,
+        "std": 2.5307776927948,
+        "absmax": 24.53125
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -22.46875,
+        "max": 68.3125,
+        "mean": -0.02178354188799858,
+        "std": 1.7454451322555542,
+        "absmax": 68.3125
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 7.45703125,
+        "mean": 0.021315593272447586,
+        "std": 0.874872088432312,
+        "absmax": 7.45703125
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -21.3125,
+        "max": 26.359375,
+        "mean": -0.1047508642077446,
+        "std": 2.384671449661255,
+        "absmax": 26.359375
+      }
+    },
+    {
+      "sample": "11",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -23.703125,
+        "max": 24.046875,
+        "mean": 0.007440852001309395,
+        "std": 2.513617753982544,
+        "absmax": 24.046875
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -21.90625,
+        "max": 65.9375,
+        "mean": -0.014962784014642239,
+        "std": 1.7343858480453491,
+        "absmax": 65.9375
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 7.45703125,
+        "mean": 0.01900157332420349,
+        "std": 0.8767693638801575,
+        "absmax": 7.45703125
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -18.703125,
+        "max": 24.625,
+        "mean": -0.03220396861433983,
+        "std": 2.3147549629211426,
+        "absmax": 24.625
+      }
+    },
+    {
+      "sample": "12",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -24.046875,
+        "max": 24.90625,
+        "mean": 0.006839691661298275,
+        "std": 2.555738687515259,
+        "absmax": 24.90625
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -21.109375,
+        "max": 64.5,
+        "mean": 0.03162798285484314,
+        "std": 1.735196828842163,
+        "absmax": 64.5
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 8.6171875,
+        "mean": 0.01630527339875698,
+        "std": 0.8639929294586182,
+        "absmax": 8.6171875
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -23.5625,
+        "max": 16.703125,
+        "mean": -0.158344104886055,
+        "std": 2.849440813064575,
+        "absmax": 23.5625
+      }
+    },
+    {
+      "sample": "13",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -24.734375,
+        "max": 25.5,
+        "mean": 0.007807557936757803,
+        "std": 2.5497968196868896,
+        "absmax": 25.5
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -22.5,
+        "max": 63.65625,
+        "mean": 0.02083532139658928,
+        "std": 1.7325793504714966,
+        "absmax": 63.65625
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 7.875,
+        "mean": 0.021957969292998314,
+        "std": 0.8657712340354919,
+        "absmax": 7.875
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -24.015625,
+        "max": 20.484375,
+        "mean": -0.23824848234653473,
+        "std": 2.9747068881988525,
+        "absmax": 24.015625
+      }
+    },
+    {
+      "sample": "14",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -26.078125,
+        "max": 26.125,
+        "mean": 0.007475905120372772,
+        "std": 2.5680654048919678,
+        "absmax": 26.125
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -21.828125,
+        "max": 62.125,
+        "mean": 0.014575773850083351,
+        "std": 1.72822904586792,
+        "absmax": 62.125
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 7.45703125,
+        "mean": 0.021711135283112526,
+        "std": 0.8568044304847717,
+        "absmax": 7.45703125
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -22.5,
+        "max": 25.453125,
+        "mean": -0.16731807589530945,
+        "std": 2.923342227935791,
+        "absmax": 25.453125
+      }
+    },
+    {
+      "sample": "15",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -24.859375,
+        "max": 25.09375,
+        "mean": 0.008274314925074577,
+        "std": 2.5580413341522217,
+        "absmax": 25.09375
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -22.46875,
+        "max": 65.125,
+        "mean": -0.0007015399751253426,
+        "std": 1.753890037536621,
+        "absmax": 65.125
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 7.45703125,
+        "mean": 0.021535107865929604,
+        "std": 0.8595461845397949,
+        "absmax": 7.45703125
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -22.5625,
+        "max": 22.71875,
+        "mean": -0.07407854497432709,
+        "std": 2.4181277751922607,
+        "absmax": 22.71875
+      }
+    },
+    {
+      "sample": "16",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -24.5625,
+        "max": 24.546875,
+        "mean": 0.00773999746888876,
+        "std": 2.5191948413848877,
+        "absmax": 24.5625
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -21.0,
+        "max": 64.3125,
+        "mean": -0.05345294252038002,
+        "std": 1.730519413948059,
+        "absmax": 64.3125
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 7.45703125,
+        "mean": 0.022280123084783554,
+        "std": 0.8779658675193787,
+        "absmax": 7.45703125
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -19.3125,
+        "max": 19.90625,
+        "mean": -0.02981102280318737,
+        "std": 2.326120615005493,
+        "absmax": 19.90625
+      }
+    },
+    {
+      "sample": "17",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -23.90625,
+        "max": 24.046875,
+        "mean": 0.008270018734037876,
+        "std": 2.5357491970062256,
+        "absmax": 24.046875
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -24.59375,
+        "max": 73.625,
+        "mean": 0.013862024061381817,
+        "std": 1.7417696714401245,
+        "absmax": 73.625
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 7.45703125,
+        "mean": 0.015966255217790604,
+        "std": 0.8648592233657837,
+        "absmax": 7.45703125
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -19.671875,
+        "max": 17.953125,
+        "mean": -0.13377439975738525,
+        "std": 2.4551403522491455,
+        "absmax": 19.671875
+      }
+    },
+    {
+      "sample": "18",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -24.015625,
+        "max": 24.515625,
+        "mean": 0.00834234431385994,
+        "std": 2.5599849224090576,
+        "absmax": 24.515625
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -22.21875,
+        "max": 64.25,
+        "mean": 0.013400265015661716,
+        "std": 1.7429332733154297,
+        "absmax": 64.25
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 7.45703125,
+        "mean": 0.019009310752153397,
+        "std": 0.860507607460022,
+        "absmax": 7.45703125
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -25.40625,
+        "max": 24.25,
+        "mean": -0.16455894708633423,
+        "std": 2.806323528289795,
+        "absmax": 25.40625
+      }
+    },
+    {
+      "sample": "19",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -26.734375,
+        "max": 26.203125,
+        "mean": 0.0074640121310949326,
+        "std": 2.5828189849853516,
+        "absmax": 26.734375
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -22.0,
+        "max": 60.875,
+        "mean": 0.007143151015043259,
+        "std": 1.7283802032470703,
+        "absmax": 60.875
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 7.57421875,
+        "mean": 0.022131742909550667,
+        "std": 0.8556617498397827,
+        "absmax": 7.57421875
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -23.421875,
+        "max": 23.34375,
+        "mean": -0.18382655084133148,
+        "std": 2.829988718032837,
+        "absmax": 23.421875
+      }
+    },
+    {
+      "sample": "20",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -24.875,
+        "max": 23.9375,
+        "mean": 0.006935243494808674,
+        "std": 2.5293638706207275,
+        "absmax": 24.875
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -20.578125,
+        "max": 64.9375,
+        "mean": -0.00340325478464365,
+        "std": 1.75412118434906,
+        "absmax": 64.9375
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 7.45703125,
+        "mean": 0.018748894333839417,
+        "std": 0.8763130903244019,
+        "absmax": 7.45703125
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -17.71875,
+        "max": 25.03125,
+        "mean": -0.11343540251255035,
+        "std": 2.3461506366729736,
+        "absmax": 25.03125
+      }
+    },
+    {
+      "sample": "21",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -24.375,
+        "max": 23.78125,
+        "mean": 0.006719730794429779,
+        "std": 2.522634744644165,
+        "absmax": 24.375
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -20.953125,
+        "max": 65.5,
+        "mean": -0.043889887630939484,
+        "std": 1.7387458086013794,
+        "absmax": 65.5
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 7.45703125,
+        "mean": 0.023079289123415947,
+        "std": 0.8781886100769043,
+        "absmax": 7.45703125
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -21.484375,
+        "max": 25.171875,
+        "mean": -0.08015818148851395,
+        "std": 2.2762532234191895,
+        "absmax": 25.171875
+      }
+    },
+    {
+      "sample": "22",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -24.109375,
+        "max": 24.453125,
+        "mean": 0.0064522018656134605,
+        "std": 2.53865909576416,
+        "absmax": 24.453125
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -20.375,
+        "max": 63.4375,
+        "mean": 0.027467230334877968,
+        "std": 1.730372428894043,
+        "absmax": 63.4375
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 7.45703125,
+        "mean": 0.017987815663218498,
+        "std": 0.8762568235397339,
+        "absmax": 7.45703125
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -18.921875,
+        "max": 20.71875,
+        "mean": -0.08799287676811218,
+        "std": 2.424084424972534,
+        "absmax": 20.71875
+      }
+    },
+    {
+      "sample": "23",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -24.9375,
+        "max": 24.046875,
+        "mean": 0.009072701446712017,
+        "std": 2.537534475326538,
+        "absmax": 24.9375
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -19.734375,
+        "max": 62.09375,
+        "mean": 0.01563488505780697,
+        "std": 1.7337439060211182,
+        "absmax": 62.09375
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 7.45703125,
+        "mean": 0.019248757511377335,
+        "std": 0.8663288950920105,
+        "absmax": 7.45703125
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -23.84375,
+        "max": 22.25,
+        "mean": -0.202521413564682,
+        "std": 3.0562052726745605,
+        "absmax": 23.84375
+      }
+    },
+    {
+      "sample": "24",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -25.984375,
+        "max": 26.609375,
+        "mean": 0.009107839316129684,
+        "std": 2.598330020904541,
+        "absmax": 26.609375
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -20.6875,
+        "max": 63.0,
+        "mean": 0.006490004248917103,
+        "std": 1.7372068166732788,
+        "absmax": 63.0
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 7.45703125,
+        "mean": 0.022222965955734253,
+        "std": 0.8535107970237732,
+        "absmax": 7.45703125
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -22.765625,
+        "max": 25.6875,
+        "mean": -0.14950557053089142,
+        "std": 2.5091793537139893,
+        "absmax": 25.6875
+      }
+    },
+    {
+      "sample": "25",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -24.1875,
+        "max": 23.734375,
+        "mean": 0.00668795220553875,
+        "std": 2.51780104637146,
+        "absmax": 24.1875
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -24.1875,
+        "max": 72.0625,
+        "mean": -0.012307639233767986,
+        "std": 1.7489275932312012,
+        "absmax": 72.0625
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 7.94140625,
+        "mean": 0.02214495837688446,
+        "std": 0.8775757551193237,
+        "absmax": 7.94140625
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -22.9375,
+        "max": 25.609375,
+        "mean": -0.10463280975818634,
+        "std": 2.2926132678985596,
+        "absmax": 25.609375
+      }
+    },
+    {
+      "sample": "26",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -24.171875,
+        "max": 23.875,
+        "mean": 0.00797792337834835,
+        "std": 2.538250207901001,
+        "absmax": 24.171875
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -20.46875,
+        "max": 61.3125,
+        "mean": -0.06307178735733032,
+        "std": 1.7292847633361816,
+        "absmax": 61.3125
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 7.8046875,
+        "mean": 0.024413034319877625,
+        "std": 0.8720675706863403,
+        "absmax": 7.8046875
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -21.390625,
+        "max": 23.34375,
+        "mean": -0.01609789952635765,
+        "std": 2.510294198989868,
+        "absmax": 23.34375
+      }
+    },
+    {
+      "sample": "27",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -23.90625,
+        "max": 24.5,
+        "mean": 0.007462973706424236,
+        "std": 2.533195734024048,
+        "absmax": 24.5
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -24.078125,
+        "max": 73.5625,
+        "mean": 0.03799615055322647,
+        "std": 1.737831950187683,
+        "absmax": 73.5625
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 8.453125,
+        "mean": 0.015259301289916039,
+        "std": 0.8683618903160095,
+        "absmax": 8.453125
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -23.21875,
+        "max": 17.125,
+        "mean": -0.15551334619522095,
+        "std": 2.8248178958892822,
+        "absmax": 23.21875
+      }
+    },
+    {
+      "sample": "28",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -23.765625,
+        "max": 24.109375,
+        "mean": 0.00884245801717043,
+        "std": 2.5196893215179443,
+        "absmax": 24.109375
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -21.6875,
+        "max": 64.125,
+        "mean": 0.010849613696336746,
+        "std": 1.7346864938735962,
+        "absmax": 64.125
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 7.45703125,
+        "mean": 0.01975351758301258,
+        "std": 0.8711109757423401,
+        "absmax": 7.45703125
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -23.78125,
+        "max": 22.984375,
+        "mean": -0.18738038837909698,
+        "std": 2.9815337657928467,
+        "absmax": 23.78125
+      }
+    },
+    {
+      "sample": "29",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -25.140625,
+        "max": 25.15625,
+        "mean": 0.00797752570360899,
+        "std": 2.5505714416503906,
+        "absmax": 25.15625
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -21.796875,
+        "max": 62.53125,
+        "mean": 0.01707795448601246,
+        "std": 1.7318530082702637,
+        "absmax": 62.53125
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 7.89453125,
+        "mean": 0.022417157888412476,
+        "std": 0.8632006049156189,
+        "absmax": 7.89453125
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -20.3125,
+        "max": 25.3125,
+        "mean": -0.17953923344612122,
+        "std": 2.828383445739746,
+        "absmax": 25.3125
+      }
+    },
+    {
+      "sample": "30",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -24.5,
+        "max": 23.8125,
+        "mean": 0.008164264261722565,
+        "std": 2.535142421722412,
+        "absmax": 24.5
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -20.625,
+        "max": 64.75,
+        "mean": -0.020553449168801308,
+        "std": 1.7434449195861816,
+        "absmax": 64.75
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 7.55078125,
+        "mean": 0.020079785957932472,
+        "std": 0.8706381320953369,
+        "absmax": 7.55078125
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -20.65625,
+        "max": 22.09375,
+        "mean": -0.10020342469215393,
+        "std": 2.3512609004974365,
+        "absmax": 22.09375
+      }
+    },
+    {
+      "sample": "31",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -24.484375,
+        "max": 23.84375,
+        "mean": 0.006169009022414684,
+        "std": 2.519343614578247,
+        "absmax": 24.484375
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -23.1875,
+        "max": 70.4375,
+        "mean": -0.02719130367040634,
+        "std": 1.74387788772583,
+        "absmax": 70.4375
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 7.5546875,
+        "mean": 0.02059885486960411,
+        "std": 0.8791104555130005,
+        "absmax": 7.5546875
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -22.421875,
+        "max": 25.21875,
+        "mean": -0.0809774324297905,
+        "std": 2.295308828353882,
+        "absmax": 25.21875
+      }
+    },
+    {
+      "sample": "32",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -23.859375,
+        "max": 24.390625,
+        "mean": 0.005422568880021572,
+        "std": 2.5257861614227295,
+        "absmax": 24.390625
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -20.453125,
+        "max": 66.625,
+        "mean": 0.035725340247154236,
+        "std": 1.7565677165985107,
+        "absmax": 66.625
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 8.0703125,
+        "mean": 0.018501942977309227,
+        "std": 0.8801448941230774,
+        "absmax": 8.0703125
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -26.21875,
+        "max": 25.015625,
+        "mean": -0.05624900758266449,
+        "std": 2.5672740936279297,
+        "absmax": 26.21875
+      }
+    },
+    {
+      "sample": "33",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -24.046875,
+        "max": 23.875,
+        "mean": 0.009062984958291054,
+        "std": 2.5246381759643555,
+        "absmax": 24.046875
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -20.921875,
+        "max": 62.28125,
+        "mean": 0.008635875768959522,
+        "std": 1.7340165376663208,
+        "absmax": 62.28125
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 7.45703125,
+        "mean": 0.019800303503870964,
+        "std": 0.872339129447937,
+        "absmax": 7.45703125
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -22.625,
+        "max": 21.25,
+        "mean": -0.1766957938671112,
+        "std": 3.06710147857666,
+        "absmax": 22.625
+      }
+    },
+    {
+      "sample": "34",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -23.609375,
+        "max": 24.0625,
+        "mean": 0.008209072053432465,
+        "std": 2.5174806118011475,
+        "absmax": 24.0625
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -22.734375,
+        "max": 67.625,
+        "mean": 0.020181572064757347,
+        "std": 1.737503170967102,
+        "absmax": 67.625
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 7.7265625,
+        "mean": 0.019712409004569054,
+        "std": 0.8689290285110474,
+        "absmax": 7.7265625
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -24.71875,
+        "max": 26.5625,
+        "mean": -0.17723719775676727,
+        "std": 2.899168014526367,
+        "absmax": 26.5625
+      }
+    },
+    {
+      "sample": "35",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -24.40625,
+        "max": 23.859375,
+        "mean": 0.006895487662404776,
+        "std": 2.522953987121582,
+        "absmax": 24.40625
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -21.484375,
+        "max": 67.3125,
+        "mean": -0.006184508092701435,
+        "std": 1.7508387565612793,
+        "absmax": 67.3125
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 7.64453125,
+        "mean": 0.018146710470318794,
+        "std": 0.8758736848831177,
+        "absmax": 7.64453125
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -18.71875,
+        "max": 23.71875,
+        "mean": -0.10780373960733414,
+        "std": 2.309918165206909,
+        "absmax": 23.71875
+      }
+    },
+    {
+      "sample": "36",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -23.75,
+        "max": 24.09375,
+        "mean": 0.0067312708124518394,
+        "std": 2.5042333602905273,
+        "absmax": 24.09375
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -21.125,
+        "max": 60.15625,
+        "mean": -0.024719703942537308,
+        "std": 1.730009913444519,
+        "absmax": 60.15625
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 7.45703125,
+        "mean": 0.01966579630970955,
+        "std": 0.8751493692398071,
+        "absmax": 7.45703125
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -17.65625,
+        "max": 23.421875,
+        "mean": -0.018255827948451042,
+        "std": 2.5542685985565186,
+        "absmax": 23.421875
+      }
+    },
+    {
+      "sample": "37",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -23.828125,
+        "max": 24.109375,
+        "mean": 0.006471060216426849,
+        "std": 2.5095162391662598,
+        "absmax": 24.109375
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -20.921875,
+        "max": 65.5625,
+        "mean": 0.017325913533568382,
+        "std": 1.7546813488006592,
+        "absmax": 65.5625
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 8.2265625,
+        "mean": 0.01700124889612198,
+        "std": 0.8809605240821838,
+        "absmax": 8.2265625
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -21.6875,
+        "max": 24.03125,
+        "mean": -0.10921469330787659,
+        "std": 2.719447612762451,
+        "absmax": 24.03125
+      }
+    },
+    {
+      "sample": "38",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -23.703125,
+        "max": 23.453125,
+        "mean": 0.008038274012506008,
+        "std": 2.5138356685638428,
+        "absmax": 23.703125
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -23.53125,
+        "max": 66.8125,
+        "mean": -0.004230429418385029,
+        "std": 1.7406038045883179,
+        "absmax": 66.8125
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 7.45703125,
+        "mean": 0.018296344205737114,
+        "std": 0.8727119565010071,
+        "absmax": 7.45703125
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -18.34375,
+        "max": 20.0,
+        "mean": -0.12152846157550812,
+        "std": 2.406190872192383,
+        "absmax": 20.0
+      }
+    },
+    {
+      "sample": "39",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -25.84375,
+        "max": 26.015625,
+        "mean": 0.00868908315896988,
+        "std": 2.5901095867156982,
+        "absmax": 26.015625
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -21.015625,
+        "max": 63.1875,
+        "mean": 0.005180818494409323,
+        "std": 1.736495018005371,
+        "absmax": 63.1875
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 7.45703125,
+        "mean": 0.02196524105966091,
+        "std": 0.8548428416252136,
+        "absmax": 7.45703125
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -21.453125,
+        "max": 23.53125,
+        "mean": -0.15106652677059174,
+        "std": 2.5086236000061035,
+        "absmax": 23.53125
+      }
+    },
+    {
+      "sample": "40",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -25.0625,
+        "max": 23.796875,
+        "mean": 0.006502002011984587,
+        "std": 2.5327374935150146,
+        "absmax": 25.0625
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -23.265625,
+        "max": 69.5625,
+        "mean": -0.013866850174963474,
+        "std": 1.749179720878601,
+        "absmax": 69.5625
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 7.45703125,
+        "mean": 0.019230492413043976,
+        "std": 0.8724876046180725,
+        "absmax": 7.45703125
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -23.8125,
+        "max": 27.4375,
+        "mean": -0.10318179428577423,
+        "std": 2.5322256088256836,
+        "absmax": 27.4375
+      }
+    },
+    {
+      "sample": "41",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -23.84375,
+        "max": 23.421875,
+        "mean": 0.007555858697742224,
+        "std": 2.512279510498047,
+        "absmax": 23.84375
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -21.0625,
+        "max": 62.125,
+        "mean": -0.04945811256766319,
+        "std": 1.7299025058746338,
+        "absmax": 62.125
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 7.58984375,
+        "mean": 0.02335667610168457,
+        "std": 0.8792699575424194,
+        "absmax": 7.58984375
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -21.125,
+        "max": 25.28125,
+        "mean": -0.017796063795685768,
+        "std": 2.4145798683166504,
+        "absmax": 25.28125
+      }
+    },
+    {
+      "sample": "42",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -24.0625,
+        "max": 24.203125,
+        "mean": 0.00654401071369648,
+        "std": 2.528996467590332,
+        "absmax": 24.203125
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -18.3125,
+        "max": 62.90625,
+        "mean": 0.010557815432548523,
+        "std": 1.7338181734085083,
+        "absmax": 62.90625
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 7.45703125,
+        "mean": 0.01822277531027794,
+        "std": 0.8777558207511902,
+        "absmax": 7.45703125
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -19.859375,
+        "max": 20.0625,
+        "mean": -0.10613922774791718,
+        "std": 2.4152157306671143,
+        "absmax": 20.0625
+      }
+    },
+    {
+      "sample": "43",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -23.65625,
+        "max": 24.546875,
+        "mean": 0.007615810260176659,
+        "std": 2.5455899238586426,
+        "absmax": 24.546875
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -20.65625,
+        "max": 59.34375,
+        "mean": 0.025800857692956924,
+        "std": 1.7328556776046753,
+        "absmax": 59.34375
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 8.046875,
+        "mean": 0.02346210740506649,
+        "std": 0.8640187978744507,
+        "absmax": 8.046875
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -24.171875,
+        "max": 23.8125,
+        "mean": -0.18499718606472015,
+        "std": 2.808460235595703,
+        "absmax": 24.171875
+      }
+    },
+    {
+      "sample": "44",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -23.96875,
+        "max": 25.390625,
+        "mean": 0.007994923740625381,
+        "std": 2.5415451526641846,
+        "absmax": 25.390625
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -21.609375,
+        "max": 61.84375,
+        "mean": 0.039151888340711594,
+        "std": 1.7280893325805664,
+        "absmax": 61.84375
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 7.85546875,
+        "mean": 0.02231779880821705,
+        "std": 0.866644561290741,
+        "absmax": 7.85546875
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -23.28125,
+        "max": 21.625,
+        "mean": -0.23879122734069824,
+        "std": 2.9502604007720947,
+        "absmax": 23.28125
+      }
+    },
+    {
+      "sample": "45",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -23.828125,
+        "max": 23.359375,
+        "mean": 0.007086766883730888,
+        "std": 2.521233558654785,
+        "absmax": 23.828125
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -25.125,
+        "max": 67.8125,
+        "mean": -0.016784902662038803,
+        "std": 1.744837760925293,
+        "absmax": 67.8125
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 7.45703125,
+        "mean": 0.023074321448802948,
+        "std": 0.8783697485923767,
+        "absmax": 7.45703125
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -23.921875,
+        "max": 29.9375,
+        "mean": -0.08843540400266647,
+        "std": 2.403883695602417,
+        "absmax": 29.9375
+      }
+    },
+    {
+      "sample": "46",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -23.921875,
+        "max": 24.03125,
+        "mean": 0.007568196393549442,
+        "std": 2.5129988193511963,
+        "absmax": 24.03125
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -19.9375,
+        "max": 60.15625,
+        "mean": -0.04129093512892723,
+        "std": 1.7313499450683594,
+        "absmax": 60.15625
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 7.45703125,
+        "mean": 0.0255514457821846,
+        "std": 0.8748487830162048,
+        "absmax": 7.45703125
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -21.34375,
+        "max": 23.09375,
+        "mean": -0.0646715760231018,
+        "std": 2.435692310333252,
+        "absmax": 23.09375
+      }
+    },
+    {
+      "sample": "47",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -25.265625,
+        "max": 24.625,
+        "mean": 0.006240615155547857,
+        "std": 2.5248770713806152,
+        "absmax": 25.265625
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -22.546875,
+        "max": 67.625,
+        "mean": 0.0010858679888769984,
+        "std": 1.7536875009536743,
+        "absmax": 67.625
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 7.45703125,
+        "mean": 0.01647276245057583,
+        "std": 0.8685479760169983,
+        "absmax": 7.45703125
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -19.390625,
+        "max": 19.453125,
+        "mean": -0.03805173188447952,
+        "std": 2.444869041442871,
+        "absmax": 19.453125
+      }
+    },
+    {
+      "sample": "48",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -23.59375,
+        "max": 24.71875,
+        "mean": 0.008264904841780663,
+        "std": 2.5089521408081055,
+        "absmax": 24.71875
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -25.1875,
+        "max": 68.1875,
+        "mean": -0.0014093172503635287,
+        "std": 1.7303544282913208,
+        "absmax": 68.1875
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 7.515625,
+        "mean": 0.02093782275915146,
+        "std": 0.8729535937309265,
+        "absmax": 7.515625
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -18.6875,
+        "max": 23.90625,
+        "mean": -0.061300307512283325,
+        "std": 2.382474660873413,
+        "absmax": 23.90625
+      }
+    },
+    {
+      "sample": "49",
+      "prompt_tokens": 16,
+      "vision_tokens": 768,
+      "inputs_embeds": {
+        "shape": [
+          1,
+          768,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -24.921875,
+        "max": 25.796875,
+        "mean": 0.008500073105096817,
+        "std": 2.5690436363220215,
+        "absmax": 25.796875
+      },
+      "hidden_state": {
+        "shape": [
+          1,
+          816,
+          2048
+        ],
+        "dtype": "torch.float16",
+        "min": -20.84375,
+        "max": 61.21875,
+        "mean": 0.00774178933352232,
+        "std": 1.7350523471832275,
+        "absmax": 61.21875
+      },
+      "kv0": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -6.62890625,
+        "max": 7.57421875,
+        "mean": 0.023325439542531967,
+        "std": 0.8582450151443481,
+        "absmax": 7.57421875
+      },
+      "kv_last": {
+        "shape": [
+          1,
+          816,
+          256
+        ],
+        "dtype": "torch.float16",
+        "min": -23.65625,
+        "max": 29.09375,
+        "mean": -0.15072044730186462,
+        "std": 2.6446352005004883,
+        "absmax": 29.09375
+      }
+    }
+  ],
+  "stage_times": {
+    "export_seconds": 4.67301939096069,
+    "convert_seconds": 6.027344011992682,
+    "compile_hbo_seconds": 383.83757167099975,
+    "link_seconds": 65.65222019300563
+  },
+  "compile_kwargs": {
+    "march": "nash-p",
+    "jobs": 20,
+    "progress_bar": true,
+    "max_time_per_fc": 0.0,
+    "opt": 2,
+    "debug": false,
+    "advice": 0.0,
+    "balance": 2,
+    "input_no_padding": true,
+    "output_no_padding": true,
+    "enable_hpc": true,
+    "core_num": 1,
+    "max_l2m_size": 0
+  },
+  "conversion_kwargs": {
+    "rmsnorm_version": "triton",
+    "softmax_version": "vae",
+    "enable_vpu": true,
+    "enable_spu": true,
+    "use_f16_quant_dequant_on_vae_always": true
+  },
+  "precision_patch": {
+    "torch_softmax_dtype": "float32",
+    "torch_softmax_output_dtype": "query",
+    "torch_rope_output_dtype": "query",
+    "hidden_activation": "gelu_pytorch_tanh",
+    "leap_build_patched": true,
+    "leap_softmax_dtype": "float32",
+    "leap_softmax_output_dtype": "float16",
+    "siglip_leap_softmax_dtype": "float32",
+    "siglip_leap_softmax_output_dtype": "float16"
+  },
+  "bc_graph": {
+    "name": "gemma",
+    "input_count": 3,
+    "output_count": 37,
+    "operation_count": 2048,
+    "inputs": [
+      {
+        "index": 0,
+        "name": "_input_0",
+        "type": "tensor<1x48x2048xf16>",
+        "uses": 1,
+        "is_removable": false,
+        "removable_reason": "%0 = \"hbir.concat\"(%arg1, %arg0) <{dim = 1 : i64}> : (tensor<1x768x2048xf16>, tensor<1x48x2048xf16>) -> tensor<1x816x2048xf16> loc(fused<#hbdk.track<>>[\"/host/rdk_LeRobot_tools/pi0/tools/quantize_paligemma_real_calib.py\":363:25, \"concat\"]) is not a single input and single output op"
+      },
+      {
+        "index": 1,
+        "name": "_input_1",
+        "type": "tensor<1x768x2048xf16>",
+        "uses": 1,
+        "is_removable": false,
+        "removable_reason": "%0 = \"hbir.concat\"(%arg1, %arg0) <{dim = 1 : i64}> : (tensor<1x768x2048xf16>, tensor<1x48x2048xf16>) -> tensor<1x816x2048xf16> loc(fused<#hbdk.track<>>[\"/host/rdk_LeRobot_tools/pi0/tools/quantize_paligemma_real_calib.py\":363:25, \"concat\"]) is not a single input and single output op"
+      },
+      {
+        "index": 2,
+        "name": "_input_2",
+        "type": "tensor<1x1x816x816xf16>",
+        "uses": 18,
+        "is_removable": false,
+        "removable_reason": "_input_2 has multiple uses. cannot remove."
+      }
+    ]
+  },
+  "converted_graph": {
+    "name": "gemma",
+    "input_count": 3,
+    "output_count": 37,
+    "operation_count": 2690,
+    "inputs": [
+      {
+        "index": 0,
+        "name": "_input_0",
+        "type": "tensor<1x48x2048xf16>",
+        "uses": 1,
+        "is_removable": false,
+        "removable_reason": "%0 = \"hbdk.concat\"(%arg1, %arg0) <{dim = 1 : i64}> : (tensor<1x768x2048xf16>, tensor<1x48x2048xf16>) -> tensor<1x816x2048xf16> loc(fused<#hbdk.track<layerName = \"hbir.concat_id_1\", layerId = 1, originalOps = 0, originalCycles = 464390, originalOutputsShape = [<1, 816, 2048>]>>[\"/host/rdk_LeRobot_tools/pi0/tools/quantize_paligemma_real_calib.py\":363:25, \"concat\"]) is not a single input and single output op"
+      },
+      {
+        "index": 1,
+        "name": "_input_1",
+        "type": "tensor<1x768x2048xf16>",
+        "uses": 1,
+        "is_removable": false,
+        "removable_reason": "%0 = \"hbdk.concat\"(%arg1, %arg0) <{dim = 1 : i64}> : (tensor<1x768x2048xf16>, tensor<1x48x2048xf16>) -> tensor<1x816x2048xf16> loc(fused<#hbdk.track<layerName = \"hbir.concat_id_1\", layerId = 1, originalOps = 0, originalCycles = 464390, originalOutputsShape = [<1, 816, 2048>]>>[\"/host/rdk_LeRobot_tools/pi0/tools/quantize_paligemma_real_calib.py\":363:25, \"concat\"]) is not a single input and single output op"
+      },
+      {
+        "index": 2,
+        "name": "_input_2",
+        "type": "tensor<1x1x816x816xf16>",
+        "uses": 1,
+        "is_removable": true,
+        "removable_reason": ""
+      }
+    ]
+  },
+  "model_sha256": "d0e0861326096002875bd19e951a4988b9f3a0ab8b6423e94985981f89b20299",
+  "calibration_manifest_sha256": "a775993ec09deae28bad2d39282de7c72f31e3710ecffec7511368120473d63e",
+  "environment": {
+    "python": "3.10.18",
+    "torch": "2.8.0+cu128",
+    "leap_llm": "1.0.0",
+    "hbdk4_compiler": "4.10.1a2.dev202601220400+388766e.develop"
+  },
+  "artifacts": {
+    "pi0_gemma_llm_ptq.bc": {
+      "size": 1984260833,
+      "sha256": "84a2211a98fb745db293a4cd1e175f8307135c057e1b3dc6ca05842b69b12e21"
+    },
+    "pi0_gemma_llm_ptq.convert.bc": {
+      "size": 1986040300,
+      "sha256": "0ff6a793782c73d38aff31f534586ef9add572e1f3e37b9c1131ee571825617d"
+    },
+    "pi0_gemma_llm_ptq.hbm": {
+      "size": 2047778016,
+      "sha256": "7750e1a5cea43c02aec9db6eea317ac91d3ce4e37fc196c503d3935e611cde1e"
+    },
+    "pi0_gemma_llm_ptq.hbo": {
+      "size": 2308588552,
+      "sha256": "3ae9d72ed2b716fda09cba0b29fc3b4c7cf1cf62a0d4e3d2f24eda410006d457"
+    }
+  }
+}

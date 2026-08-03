@@ -1,0 +1,4 @@
+* text=auto eol=lf
+*.bin -text
+native/sdk_1.0.2/pi0_demo/proto/msg.pb.cc whitespace=-blank-at-eol
+native/sdk_1.0.2/pi0_demo/proto/msg.pb.h whitespace=-blank-at-eol

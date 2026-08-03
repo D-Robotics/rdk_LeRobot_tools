@@ -1,0 +1,113 @@
+{
+  "format": "pi0_s600_so100_deployment_manifest_v1",
+  "created_at": "2026-08-03",
+  "task": "Place the RDK camera box on top of the black MCU box.",
+  "training": {
+    "dataset": "so100_rdk_camera_box_on_black_mcu_pi0_v5_2cam_100ep_10s",
+    "episodes": 100,
+    "real_cameras": [
+      "front",
+      "side"
+    ],
+    "physical_camera_slots": 3,
+    "masked_empty_slots": 1,
+    "checkpoint": "/home/shukun01.huang/lerobot/outputs/train/pi0_so100_rdk_camera_box_on_black_mcu_full_v5_2cam_100ep_b1_15k/checkpoints/015000/pretrained_model",
+    "steps": 15000,
+    "batch_size": 1,
+    "dtype": "bfloat16",
+    "trainable_parameters": 4028019472,
+    "freeze_vision_encoder": false,
+    "freeze_language_model": false,
+    "train_expert_only": false,
+    "last_recorded_loss": 0.077
+  },
+  "calibration": {
+    "sample_count": 50,
+    "valid_camera_slots": 2,
+    "valid_vision_tokens": 512,
+    "physical_prefix_tokens": 816,
+    "expert_kv_tensors_per_sample": 36,
+    "expert_kv_shape": [
+      1,
+      816,
+      256
+    ],
+    "expert_source": "actual S600 fixed16 PaliGemma HBM KV"
+  },
+  "artifacts": {
+    "siglip": {
+      "path": "/root/pi0_models/versions/pi0_full_v5_2cam_100ep_015000_siglip_positionfp16_dynamic_l2off_20260731/siglip/pi0_siglip_ptq.hbm",
+      "size": 445286384,
+      "sha256": "f954178339b758785f7e1935a92f233d0625b30bd4c070acd86d74f546da058a",
+      "precision": "patch embedding quant8; position embedding fp16; attention, MLP, matmul and projector dynamic"
+    },
+    "paligemma": {
+      "path": "/root/pi0_models/versions/pi0_full_v5_2cam_100ep_015000_positionfp16_siglip_hbmcalib_fixed16_paligemma_20260731/paligemma/pi0_gemma_llm_ptq.hbm",
+      "size": 2047778016,
+      "sha256": "7750e1a5cea43c02aec9db6eea317ac91d3ce4e37fc196c503d3935e611cde1e",
+      "precision": "dynamic linear; fixed16 attention matmul; fp32 accumulation; fp16 output"
+    },
+    "expert": {
+      "path": "/root/pi0_models/versions/pi0_full_v5_2cam_100ep_015000_expert_fixed16_paligemma_hbmkv_dynamic_real50_sdk102_20260801/expert/pi0_gemma_expert_ptq.hbm",
+      "size": 344902928,
+      "sha256": "db83230022823e53260523dd830f685d38f4d9a72396df7060d11f5cce754d2b",
+      "precision": "dynamic transformer, projection, attention matmul and output; fp32 softmax with fp16 output"
+    },
+    "prompt_embedding": {
+      "path": "/root/pi0_models/versions/pi0_full_v5_2cam_100ep_015000_positionfp16_siglip_hbmcalib_fixed16_paligemma_20260731/paligemma/fixed_prompt_embedding.bin",
+      "size": 196608,
+      "sha256": "39ac72af2ea87575284a6059cb513287c140593b426c488cb34d135fa552ce87"
+    },
+    "norm_stats": {
+      "path": "/root/rdk_LeRobot_tools/models/pi0/configs/norm_stats_pi0_full_v5_2cam_100ep_015000.json",
+      "sha256": "c9a4362acaf822d820ac6871a04184972fd2540d44b4abecce6cd362c04db452"
+    },
+    "follower_calibration": {
+      "path": "/root/rdk_LeRobot_tools/models/pi0/calibration/robots/so_follower/so100_follower.json",
+      "sha256": "dc14138f498fdebd3a333809b01a27c230f46218eaa31a2079c7623b993290b0",
+      "repository_policy": "hardware-specific file is intentionally not committed"
+    },
+    "standalone_binary": {
+      "path": "/root/rdk_LeRobot_tools/models/pi0/native/install/bin/pi0_standalone_sdk102",
+      "sha256": "04459dc728db9f570f54ed1d7ed0284c726e7ac35a938b078ec6e5773be6d5ac",
+      "repository_policy": "binary is rebuilt on S600 and intentionally not committed"
+    }
+  },
+  "runtime": {
+    "sdk": "D-Robotics LLM S600 SDK 1.0.2",
+    "march": "nash-p",
+    "action_shape": [
+      50,
+      6
+    ],
+    "denoise_steps": 10,
+    "control_hz": 30,
+    "inference_mode": "strict synchronous",
+    "prefetch_steps": 0,
+    "visual_refresh_chunks": 1,
+    "cross_chunk_kv_reuse": false,
+    "same_request_kv_reuse": true
+  },
+  "validation": {
+    "offline_real_dual_camera_smoke": "passed",
+    "live_chunks": 64,
+    "full_chain_ms": 1248,
+    "siglip_ms": 19.3,
+    "single_input_bf16_comparison": {
+      "scope": "one fixed real input; not a global accuracy claim",
+      "mae_degrees": 0.4405,
+      "rmse_degrees": 0.5903,
+      "max_abs_degrees": 1.6888,
+      "relative_l2_percent": 0.852,
+      "cosine_similarity": 0.999981858,
+      "per_joint_mae_degrees": [
+        0.499,
+        1.074,
+        0.598,
+        0.056,
+        0.264,
+        0.153
+      ]
+    }
+  }
+}

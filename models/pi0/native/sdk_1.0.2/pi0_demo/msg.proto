@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+message Time {
+  int64 sec = 1;
+  int32 nsec = 2;
+}
+
+message Header {
+  uint32 seq = 1;
+  Time stamp = 2;
+  string frame_id = 3;
+  uint32 type = 4;
+  bool reset = 5;
+}
+
+message Tensor {
+  enum DataType {
+    FLOAT64 = 0;
+    UINT8 = 1;
+    STRING = 2;
+    FLOAT32 = 3;
+    INT32 = 4;
+    FP16 = 5;
+  }
+
+  DataType dtype = 1;
+  repeated int32 shape = 2;
+  bytes data = 3;
+}
+
+message MultiModalInput {
+  Header header = 1;
+  repeated Tensor images = 2;
+  repeated Tensor languages = 3;
+  repeated Tensor states = 4;
+}

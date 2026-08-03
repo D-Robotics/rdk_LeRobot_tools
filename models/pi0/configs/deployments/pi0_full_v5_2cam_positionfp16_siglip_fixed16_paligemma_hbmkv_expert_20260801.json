@@ -1,0 +1,32 @@
+{
+  "runtime": "standalone_dnn",
+  "siglip_hbm_path": "/root/pi0_models/versions/pi0_full_v5_2cam_100ep_015000_siglip_positionfp16_dynamic_l2off_20260731/siglip/pi0_siglip_ptq.hbm",
+  "paligemma_hbm_path": "/root/pi0_models/versions/pi0_full_v5_2cam_100ep_015000_positionfp16_siglip_hbmcalib_fixed16_paligemma_20260731/paligemma/pi0_gemma_llm_ptq.hbm",
+  "action_hbm_path": "/root/pi0_models/versions/pi0_full_v5_2cam_100ep_015000_expert_fixed16_paligemma_hbmkv_dynamic_real50_sdk102_20260801/expert/pi0_gemma_expert_ptq.hbm",
+  "prompt_embedding_path": "/root/pi0_models/versions/pi0_full_v5_2cam_100ep_015000_positionfp16_siglip_hbmcalib_fixed16_paligemma_20260731/paligemma/fixed_prompt_embedding.bin",
+  "siglip_bpu_core": [
+    0,
+    1,
+    2
+  ],
+  "paligemma_bpu_core": [
+    0
+  ],
+  "action_bpu_core": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "norm_stats_path": "/root/rdk_LeRobot_tools/models/pi0/configs/norm_stats_pi0_full_v5_2cam_100ep_015000.json",
+  "server_ip": "127.0.0.1",
+  "server_port": 30001,
+  "state_size": 6,
+  "exec_size": 6,
+  "real_camera_num": 2,
+  "action_mode": "absolute",
+  "denoise_num": 10,
+  "parallel_siglip": true,
+  "task": "Place the RDK camera box on top of the black MCU box.",
+  "candidate_note": "Position FP16 SigLIP, fixed16 PaliGemma, and Expert calibrated from 50 sets of real S600 PaliGemma HBM KV; two real cameras plus one masked empty slot; 2026-08-01"
+}
